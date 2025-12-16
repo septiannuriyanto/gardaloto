@@ -19,6 +19,8 @@ class LotoSessionsLoaded extends LotoSessionsState {
   final DateTime? filterDate;
   final int? filterShift;
   final String? filterWarehouse;
+  final String? filterFuelman;
+  final String? filterOperator;
   final String filterStatus; // 'All', 'Submitted', 'Pending'
   final Map<String, int> remoteCounts;
   final Map<String, int> localCounts;
@@ -28,6 +30,8 @@ class LotoSessionsLoaded extends LotoSessionsState {
     this.filterDate,
     this.filterShift,
     this.filterWarehouse,
+    this.filterFuelman,
+    this.filterOperator,
     this.filterStatus = 'All',
     this.remoteCounts = const {},
     this.localCounts = const {},
@@ -39,6 +43,8 @@ class LotoSessionsLoaded extends LotoSessionsState {
     filterDate,
     filterShift,
     filterWarehouse,
+    filterFuelman,
+    filterOperator,
     filterStatus,
     remoteCounts,
     localCounts,
@@ -49,6 +55,8 @@ class LotoSessionsLoaded extends LotoSessionsState {
     DateTime? filterDate,
     int? filterShift,
     String? filterWarehouse,
+    String? filterFuelman,
+    String? filterOperator,
     String? filterStatus,
     Map<String, int>? remoteCounts,
     Map<String, int>? localCounts,
@@ -58,6 +66,8 @@ class LotoSessionsLoaded extends LotoSessionsState {
       filterDate: filterDate ?? this.filterDate,
       filterShift: filterShift ?? this.filterShift,
       filterWarehouse: filterWarehouse ?? this.filterWarehouse,
+      filterFuelman: filterFuelman ?? this.filterFuelman,
+      filterOperator: filterOperator ?? this.filterOperator,
       filterStatus: filterStatus ?? this.filterStatus,
       remoteCounts: remoteCounts ?? this.remoteCounts,
       localCounts: localCounts ?? this.localCounts,
@@ -83,6 +93,8 @@ class LotoSessionsCubit extends Cubit<LotoSessionsState> {
     DateTime? date,
     int? shift,
     String? warehouseCode,
+    String? fuelman,
+    String? operatorName,
     String status = 'All',
   }) async {
     emit(LotoSessionsLoading());
@@ -91,6 +103,8 @@ class LotoSessionsCubit extends Cubit<LotoSessionsState> {
         date: date,
         shift: shift,
         warehouseCode: warehouseCode,
+        fuelman: fuelman,
+        operatorName: operatorName,
       );
 
       final remoteCounts = <String, int>{};
@@ -106,6 +120,8 @@ class LotoSessionsCubit extends Cubit<LotoSessionsState> {
         filterDate: date,
         filterShift: shift,
         filterWarehouse: warehouseCode,
+        filterFuelman: fuelman,
+        filterOperator: operatorName,
         filterStatus: status,
         remoteCounts: remoteCounts,
         localCounts: localCounts,
@@ -119,12 +135,16 @@ class LotoSessionsCubit extends Cubit<LotoSessionsState> {
     DateTime? date,
     int? shift,
     String? warehouseCode,
+    String? fuelman,
+    String? operatorName,
     String? status,
   }) async {
     // If state is loaded, preserve other filters if not provided
     DateTime? currentDate;
     int? currentShift;
     String? currentWarehouse;
+    String? currentFuelman;
+    String? currentOperator;
     String currentStatus = 'All';
 
     if (state is LotoSessionsLoaded) {
@@ -132,6 +152,8 @@ class LotoSessionsCubit extends Cubit<LotoSessionsState> {
       currentDate = loaded.filterDate;
       currentShift = loaded.filterShift;
       currentWarehouse = loaded.filterWarehouse;
+      currentFuelman = loaded.filterFuelman;
+      currentOperator = loaded.filterOperator;
       currentStatus = loaded.filterStatus;
     }
 
@@ -139,6 +161,8 @@ class LotoSessionsCubit extends Cubit<LotoSessionsState> {
       date: date ?? currentDate,
       shift: shift ?? currentShift,
       warehouseCode: warehouseCode ?? currentWarehouse,
+      fuelman: fuelman ?? currentFuelman,
+      operatorName: operatorName ?? currentOperator,
       status: status ?? currentStatus,
     );
   }

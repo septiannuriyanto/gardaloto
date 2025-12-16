@@ -44,12 +44,16 @@ class _LotoSessionsViewState extends State<_LotoSessionsView> {
   DateTime? _selectedDate;
   int? _selectedShift;
   String? _selectedWarehouse;
+  String? _selectedFuelman;
+  String? _selectedOperator;
 
   void _applyFilters() {
     context.read<LotoSessionsCubit>().fetchSessions(
       date: _selectedDate,
       shift: _selectedShift,
       warehouseCode: _selectedWarehouse,
+      fuelman: _selectedFuelman,
+      operatorName: _selectedOperator,
     );
   }
 
@@ -58,6 +62,8 @@ class _LotoSessionsViewState extends State<_LotoSessionsView> {
       _selectedDate = null;
       _selectedShift = null;
       _selectedWarehouse = null;
+      _selectedFuelman = null;
+      _selectedOperator = null;
     });
     _applyFilters();
   }
@@ -155,19 +161,93 @@ class _LotoSessionsViewState extends State<_LotoSessionsView> {
                           )));
                         }
                         
-                        return DropdownButtonFormField<String>(
-                          value: _selectedWarehouse,
-                          decoration: const InputDecoration(
-                            labelText: 'Warehouse',
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      return Column(
+                        children: [
+                          DropdownButtonFormField<String>(
+                            value: _selectedWarehouse,
+                            decoration: const InputDecoration(
+                              labelText: 'Warehouse',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                            items: warehouseItems,
+                            onChanged: (v) {
+                              setState(() => _selectedWarehouse = v);
+                              _applyFilters();
+                            },
                           ),
-                          items: warehouseItems,
-                          onChanged: (v) {
-                            setState(() => _selectedWarehouse = v);
-                            _applyFilters();
-                          },
-                        );
+                          const SizedBox(height: 8),
+                          // Manpower Filters
+                          BlocBuilder<ManpowerCubit, ManpowerState>(
+                            builder: (context, manpowerState) {
+                              List<DropdownMenuItem<String>> fuelmanItems = [
+                                const DropdownMenuItem(value: null, child: Text('All Fuelmen')),
+                              ];
+                              List<DropdownMenuItem<String>> operatorItems = [
+                                const DropdownMenuItem(value: null, child: Text('All Operators')),
+                              ];
+
+                              if (manpowerState is ManpowerSynced) {
+                                final fuelmen = List.of(manpowerState.fuelmen)
+                                  ..sort((a, b) => (a.nama ?? a.nrp).compareTo(b.nama ?? b.nrp));
+                                final operators = List.of(manpowerState.operators)
+                                  ..sort((a, b) => (a.nama ?? a.nrp).compareTo(b.nama ?? b.nrp));
+
+                                fuelmanItems.addAll(
+                                  fuelmen.map((e) => DropdownMenuItem(
+                                    value: e.nrp,
+                                    child: Text(e.nama ?? e.nrp),
+                                  )),
+                                );
+                                operatorItems.addAll(
+                                  operators.map((e) => DropdownMenuItem(
+                                    value: e.nrp,
+                                    child: Text(e.nama ?? e.nrp),
+                                  )),
+                                );
+                              }
+
+                              return Row(
+                                children: [
+                                  Expanded(
+                                    child: DropdownButtonFormField<String>(
+                                      value: _selectedFuelman,
+                                      isExpanded: true,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Fuelman',
+                                        border: OutlineInputBorder(),
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      ),
+                                      items: fuelmanItems,
+                                      onChanged: (v) {
+                                        setState(() => _selectedFuelman = v);
+                                        _applyFilters();
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: DropdownButtonFormField<String>(
+                                      value: _selectedOperator,
+                                      isExpanded: true,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Operator',
+                                        border: OutlineInputBorder(),
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      ),
+                                      items: operatorItems,
+                                      onChanged: (v) {
+                                        setState(() => _selectedOperator = v);
+                                        _applyFilters();
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ],
+                      );
                       },
                     ),
                     TextButton(

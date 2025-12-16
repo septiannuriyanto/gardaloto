@@ -28,6 +28,8 @@ abstract class LotoRepository {
     DateTime? date,
     int? shift,
     String? warehouseCode,
+    String? fuelman,
+    String? operatorName,
     int limit = 10,
   });
 

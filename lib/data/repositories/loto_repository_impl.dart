@@ -191,6 +191,8 @@ class LotoRepositoryImpl implements LotoRepository {
     DateTime? date,
     int? shift,
     String? warehouseCode,
+    String? fuelman,
+    String? operatorName,
     int limit = 10,
   }) async {
     var query = _supabaseClient.from('loto_sessions').select();
@@ -210,6 +212,14 @@ class LotoRepositoryImpl implements LotoRepository {
 
     if (warehouseCode != null && warehouseCode.isNotEmpty) {
       query = query.eq('warehouse_code', warehouseCode);
+    }
+
+    if (fuelman != null && fuelman.isNotEmpty) {
+      query = query.eq('fuelman', fuelman);
+    }
+    
+    if (operatorName != null && operatorName.isNotEmpty) {
+      query = query.eq('operator', operatorName);
     }
 
     // Apply order and limit at the end
