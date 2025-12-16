@@ -8,7 +8,7 @@ import 'package:gardaloto/core/image_utils.dart';
 import 'package:gardaloto/presentation/cubit/loto_cubit.dart';
 import 'package:gardaloto/presentation/cubit/loto_state.dart';
 import 'package:gardaloto/presentation/widget/photo_overlay.dart';
-import 'package:go_router/go_router.dart';
+import 'package:geolocator/geolocator.dart';
 
 class CaptureBottomSheet extends StatefulWidget {
   const CaptureBottomSheet({super.key});
@@ -19,25 +19,94 @@ class CaptureBottomSheet extends StatefulWidget {
 
 class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
   final ScrollController _scrollCtrl = ScrollController();
-  final LayerLink _fieldLink = LayerLink();
+  final TextEditingController _textCtrl = TextEditingController();
+  final FocusNode _textFocus = FocusNode();
 
   String? selectedCode;
-  bool _focusHandled = false;
+  bool _isDuplicate = false;
+
+  // Dummy unit data for chips (Synced with CaptureFormPage)
+  final List<String> _dummyUnits = [
+    'UNIT-001',
+    'UNIT-002', 
+    'DT-01',
+    'EX-02', 
+    'DZ-03'
+  ];
+
   // watermark editors
-  final TextEditingController _wm1Ctrl = TextEditingController();
-  final TextEditingController _wm2Ctrl = TextEditingController();
-  final TextEditingController _wm3Ctrl = TextEditingController();
-  final TextEditingController _wm4Ctrl = TextEditingController();
+  final TextEditingController _wm1Ctrl = TextEditingController(); // NRP
+  final TextEditingController _wm2Ctrl = TextEditingController(); // UNIT
+  final TextEditingController _wm3Ctrl = TextEditingController(); // GPS
+  final TextEditingController _wm4Ctrl = TextEditingController(); // TIME
   bool _wmInitialized = false;
-  bool _wm2Edited = false;
 
   @override
   void initState() {
     super.initState();
-    _wm2Ctrl.addListener(() {
-      // mark user-edited when user changes the unit watermark field
-      _wm2Edited = true;
+    // Auto focus on open
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _textFocus.requestFocus();
+
+        // Trigger auto-location if needed
+        final state = context.read<LotoCubit>().state;
+        if (state is LotoCapturing && state.lat == 0 && state.lng == 0 && !state.hasAttemptedGpsFetch) {
+          _fetchLocation();
+        }
+      }
     });
+
+    // Listen to text changes for duplicate check and watermark update
+    _textCtrl.addListener(() {
+      setState(() {
+        final val = _textCtrl.text.trim();
+        final state = context.read<LotoCubit>().state;
+        if (state is LotoCapturing) {
+           _isDuplicate = state.records.any((r) => r.codeNumber == val);
+        }
+        _wm2Ctrl.text = 'UNIT: ${val.isEmpty ? '-' : val}';
+        selectedCode = val.isEmpty ? null : val;
+      });
+    });
+  }
+
+  Future<void> _fetchLocation() async {
+    final cubit = context.read<LotoCubit>();
+    cubit.updateLocationStatus(isLoading: true);
+
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        cubit.updateLocationStatus(isLoading: false, error: 'Location services disabled');
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          cubit.updateLocationStatus(isLoading: false, error: 'Location permission denied');
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        cubit.updateLocationStatus(isLoading: false, error: 'Location permission denied forever');
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition();
+      if (mounted) {
+        cubit.updateLocation(position.latitude, position.longitude);
+        // Also update watermark control for GPS
+        _wm3Ctrl.text = 'GPS: ${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
+      }
+    } catch (e) {
+      if (mounted) {
+        cubit.updateLocationStatus(isLoading: false, error: e.toString());
+      }
+    }
   }
 
   @override
@@ -54,6 +123,9 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
       _wm4Ctrl.text = 'TIME: ${state.timestamp.toIso8601String()}';
       _wmInitialized = true;
     }
+
+    // Auto update GPS watermark if state updates (e.g. from auto-fetch)
+    _wm3Ctrl.text = 'GPS: ${state.lat.toStringAsFixed(5)}, ${state.lng.toStringAsFixed(5)}';
 
     return SafeArea(
       top: false,
@@ -74,207 +146,114 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  /// drag handle
-                  Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade400,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
+                   // Header Row
+                   Row(
+                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                     children: [
+                       const SizedBox(width: 48), // Spacer for centering
+                       Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade400,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      IconButton(
+                        icon: state.isLocationLoading 
+                          ? const SizedBox(
+                              width: 16, 
+                              height: 16, 
+                              child: CircularProgressIndicator(strokeWidth: 2)
+                            )
+                          : const Icon(Icons.gps_fixed, size: 20),
+                        tooltip: 'Refresh Location',
+                        onPressed: state.isLocationLoading ? null : _fetchLocation,
+                      ),
+                     ],
+                   ),
+                  const SizedBox(height: 8),
+
+                   // Location Error Indicator
+                   if (state.locationError != null) ...[
+                     Text("Location Error: ${state.locationError}", style: const TextStyle(fontSize: 12, color: Colors.red)),
+                     const SizedBox(height: 8),
+                   ],
+
+                   // Getting location indicator
+                   if (state.isLocationLoading) ...[
+                      const LinearProgressIndicator(minHeight: 2),
+                      const SizedBox(height: 4),
+                      const Text("Getting location...", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                      const SizedBox(height: 12),
+                   ],
+
 
                   /// photo preview
                   PhotoOverlay(
                     photoPath: state.photoPath,
                     nrp: "NRP123456",
-                    code: selectedCode,
+                    code: _textCtrl.text.isEmpty ? "-" : _textCtrl.text, // Live update
                     lat: state.lat,
                     lng: state.lng,
                     timestamp: state.timestamp,
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
 
-                  /// AUTOCOMPLETE
-                  Autocomplete<String>(
-                    optionsBuilder: (TextEditingValue text) {
-                      final all = ["UNIT-A01", "UNIT-B02", "UNIT-C03"];
-                      if (text.text.isEmpty) return all;
-                      return all.where(
-                        (e) =>
-                            e.toLowerCase().contains(text.text.toLowerCase()),
-                      );
-                    },
+                  // Chip suggestions (Moved to Top)
+                  if (_textCtrl.text.isNotEmpty) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: Wrap(
+                        spacing: 8.0,
+                        runSpacing: 4.0,
+                        alignment: WrapAlignment.start,
+                        children: _dummyUnits
+                            .where((unit) => unit
+                                .toLowerCase()
+                                .contains(_textCtrl.text.toLowerCase()))
+                            .map((unit) {
+                          return ActionChip(
+                            label: Text(unit),
+                            onPressed: () {
+                              _textCtrl.text = unit; // Updates logic via listener
+                              _textFocus.unfocus();
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
 
-                    fieldViewBuilder: (
-                      context,
-                      controller,
-                      focusNode,
-                      onSubmit,
-                    ) {
-                      if (!_focusHandled) {
-                        focusNode.addListener(() {
-                          if (focusNode.hasFocus) {
-                            Future.delayed(
-                              const Duration(milliseconds: 200),
-                              () {
-                                if (_scrollCtrl.hasClients) {
-                                  _scrollCtrl.animateTo(
-                                    _scrollCtrl.position.maxScrollExtent,
-                                    duration: const Duration(milliseconds: 250),
-                                    curve: Curves.easeOut,
-                                  );
-                                }
-                              },
-                            );
-                          }
-                        });
-                        _focusHandled = true;
-                      }
-
-                      return CompositedTransformTarget(
-                        link: _fieldLink,
-                        child: TextField(
-                          controller: controller,
-                          focusNode: focusNode,
-                          decoration: const InputDecoration(
-                            labelText: 'Unit Code',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      );
-                    },
-
-                    optionsViewBuilder: (context, onSelected, options) {
-                      final opts = options.toList();
-                      const itemWidth = 140.0;
-
-                      final screenWidth = MediaQuery.of(context).size.width;
-                      final width = min(
-                        opts.length * itemWidth,
-                        screenWidth - 32,
-                      );
-
-                      return CompositedTransformFollower(
-                        link: _fieldLink,
-                        offset: const Offset(0, -64),
-                        showWhenUnlinked: false,
-                        child: Material(
-                          elevation: 4,
-                          child: Container(
-                            width: width,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children:
-                                    opts.map((opt) {
-                                      final isSelected = selectedCode == opt;
-                                      return Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6.0,
-                                        ),
-                                        child: ChoiceChip(
-                                          label: Text(opt),
-                                          selected: isSelected,
-                                          onSelected: (v) {
-                                            setState(() {
-                                              selectedCode = v ? opt : null;
-                                              if (!_wm2Edited) {
-                                                _wm2Ctrl.text =
-                                                    'UNIT: ${selectedCode ?? '-'}';
-                                              }
-                                            });
-                                            onSelected(opt);
-                                          },
-                                        ),
-                                      );
-                                    }).toList(),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-
-                    onSelected: (v) => setState(() => selectedCode = v),
+                  /// Unit Code Input (Simplified, matching CaptureFormPage style)
+                  TextFormField(
+                    controller: _textCtrl,
+                    focusNode: _textFocus,
+                    decoration: InputDecoration(
+                      labelText: 'Unit Code',
+                      border: const OutlineInputBorder(),
+                      hintText: 'e.g. UNIT-A01',
+                      errorText: _isDuplicate ? 'Duplicate Unit Code' : null,
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.grey),
+                         onPressed: () {
+                          _textCtrl.clear();
+                          _textFocus.requestFocus();
+                        }
+                      ),
+                    ),
                   ),
 
                   const SizedBox(height: 24),
-
-                  /// WATERMARK CUSTOMIZATION
-                  ExpansionTile(
-                    title: const Text('Watermark (customize lines)'),
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Column(
-                          children: [
-                            TextField(
-                              controller: _wm1Ctrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Line 1',
-                                helperText: 'e.g. NRP: 12345',
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextField(
-                              controller: _wm2Ctrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Line 2',
-                                helperText: 'e.g. UNIT: A01',
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextField(
-                              controller: _wm3Ctrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Line 3',
-                                helperText: 'e.g. GPS: lat, lng',
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextField(
-                              controller: _wm4Ctrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Line 4',
-                                helperText: 'e.g. TIME: ISO',
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                TextButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      _wm1Ctrl.text = 'NRP: NRP123456';
-                                      _wm2Ctrl.text =
-                                          'UNIT: ${selectedCode ?? '-'}';
-                                      _wm3Ctrl.text =
-                                          'GPS: ${state.lat.toStringAsFixed(5)}, ${state.lng.toStringAsFixed(5)}';
-                                      _wm4Ctrl.text =
-                                          'TIME: ${state.timestamp.toIso8601String()}';
-                                    });
-                                  },
-                                  child: const Text('Reset to defaults'),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
 
                   /// SUBMIT
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed:
-                          selectedCode == null || state is LotoSubmitting
+                          _textCtrl.text.trim().isEmpty || state is LotoSubmitting || _isDuplicate
                               ? null
                               : () async {
                                 print('🚀 BottomSheet submit button pressed');
@@ -291,14 +270,12 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
                                   return;
                                 }
 
-                                // NOTE: We now use specific params for watermark
-                                
                                 String finalPath;
                                 try {
                                   print('🖼️ Adding watermark to image...');
                                   finalPath = await addWatermarkToImage(
                                     inputPath: state.photoPath,
-                                    unitCode: selectedCode!,
+                                    unitCode: _textCtrl.text.trim(),
                                     nrp: 'NRP123456',
                                     gps: '${state.lat.toStringAsFixed(5)}, ${state.lng.toStringAsFixed(5)}',
                                     timestamp: state.timestamp,
@@ -336,7 +313,7 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
                                   print('💾 Starting submit to cubit...');
                                   await context.read<LotoCubit>().submit(
                                     LotoEntity(
-                                      codeNumber: selectedCode!,
+                                      codeNumber: _textCtrl.text.trim(),
                                       photoPath: finalPath,
                                       timestamp: state.timestamp,
                                       latitude: state.lat,
@@ -439,6 +416,8 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
     _wm2Ctrl.dispose();
     _wm3Ctrl.dispose();
     _wm4Ctrl.dispose();
+    _textCtrl.dispose();
+    _textFocus.dispose();
     _scrollCtrl.dispose();
     super.dispose();
   }

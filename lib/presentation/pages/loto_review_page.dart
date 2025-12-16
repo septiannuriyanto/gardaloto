@@ -60,13 +60,19 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
         // Trigger capture with default location (0,0 for now)
         context.read<LotoCubit>().startCapture(photoPath: photo.path);
 
+        // Capture local cubit before showing modal
+        final lotoCubit = context.read<LotoCubit>();
+
         // Show bottom sheet directly - no navigation needed
         showModalBottomSheet(
           context: context,
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
           barrierColor: Colors.black54,
-          builder: (context) => const CaptureBottomSheet(),
+          builder: (context) => BlocProvider.value(
+            value: lotoCubit,
+            child: const CaptureBottomSheet(),
+          ),
         );
       }
     } catch (e) {
