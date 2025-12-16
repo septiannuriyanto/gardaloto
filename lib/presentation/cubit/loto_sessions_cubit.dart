@@ -142,4 +142,20 @@ class LotoSessionsCubit extends Cubit<LotoSessionsState> {
       status: status ?? currentStatus,
     );
   }
+
+  void updateSessionCounts(String sessionNomor, int remote, int local) {
+    if (state is LotoSessionsLoaded) {
+      final currentState = state as LotoSessionsLoaded;
+      final newRemoteCounts = Map<String, int>.from(currentState.remoteCounts);
+      final newLocalCounts = Map<String, int>.from(currentState.localCounts);
+
+      newRemoteCounts[sessionNomor] = remote;
+      newLocalCounts[sessionNomor] = local;
+
+      emit(currentState.copyWith(
+        remoteCounts: newRemoteCounts,
+        localCounts: newLocalCounts,
+      ));
+    }
+  }
 }

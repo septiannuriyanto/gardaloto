@@ -69,10 +69,11 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
           barrierColor: Colors.black54,
-          builder: (context) => BlocProvider.value(
-            value: lotoCubit,
-            child: const CaptureBottomSheet(),
-          ),
+          builder:
+              (context) => BlocProvider.value(
+                value: lotoCubit,
+                child: const CaptureBottomSheet(),
+              ),
         );
       }
     } catch (e) {
@@ -89,6 +90,36 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('LOTO Review'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            // Calculate counts from current state
+            int rCount = 0;
+            int lCount = 0;
+            final state = context.read<LotoCubit>().state;
+
+            List<LotoEntity> records = [];
+            if (state is LotoLoaded)
+              records = state.records;
+            else if (state is LotoUploadSuccess)
+              records = state.records;
+            else if (state is LotoCapturing)
+              records = state.records;
+
+            if (records.isNotEmpty) {
+              rCount =
+                  records.where((r) => r.photoPath.startsWith('http')).length;
+              lCount =
+                  records.where((r) => !r.photoPath.startsWith('http')).length;
+            }
+
+            context.pop({
+              'nomor': widget.session.nomor,
+              'remote': rCount,
+              'local': lCount,
+            });
+          },
+        ),
         actions: [
           BlocBuilder<LotoCubit, LotoState>(
             builder: (context, state) {
@@ -110,487 +141,715 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
           ),
         ],
       ),
-      body: BlocConsumer<LotoCubit, LotoState>(
-        listener: (context, state) {
-          if (state is LotoCapturing) {
-            // Capture form is now shown via GoRouter navigation in _captureImage method
-            // No need to handle here anymore
-          } else if (state is LotoUploading) {
-            // Show loading dialog if not already showing
-            // Note: This is a simple implementation. For better UX, use a proper dialog manager.
-            // We check if we are already showing a dialog by checking the top route?
-            // Or we can just show it and rely on the state change to close it?
-            // A common pattern is to show a non-dismissible dialog.
+      body: PopScope(
+        canPop: false,
+        onPopInvoked: (didPop) async {
+          if (didPop) return;
 
-            // However, since state updates frequently for progress, we shouldn't push a new dialog every time.
-            // We can check if the current state was NOT LotoUploading before.
-            // But BlocListener doesn't give previous state easily unless we use listenWhen.
+          // Calculate counts from current state
+          int rCount = 0;
+          int lCount = 0;
+          final state = context.read<LotoCubit>().state;
+          if (state is LotoLoaded) {
+            final records = state.records;
+            rCount =
+                records.where((r) => r.photoPath.startsWith('http')).length;
+            lCount =
+                records.where((r) => !r.photoPath.startsWith('http')).length;
+          } else if (state is LotoUploadSuccess) {
+            // If just uploaded, we might have updated records in state
+            final records = state.records;
+            rCount =
+                records.where((r) => r.photoPath.startsWith('http')).length;
+            lCount =
+                records.where((r) => !r.photoPath.startsWith('http')).length;
+          }
+          // Fallback if needed, but usually state is LotoLoaded or UploadSuccess after ops.
+          // Actually, LotoCubit state remains.
 
-            // Let's use a simpler approach: The builder handles the "Loading" overlay if we want inline.
-            // But the user asked for a "dialog upload".
+          context.pop({
+            'nomor': widget.session.nomor,
+            'remote': rCount,
+            'local': lCount,
+          });
+        },
+        child: BlocConsumer<LotoCubit, LotoState>(
+          listener: (context, state) {
+            if (state is LotoCapturing) {
+              // Capture form is now shown via GoRouter navigation in _captureImage method
+              // No need to handle here anymore
+            } else if (state is LotoUploading) {
+              // Show loading dialog if not already showing
+              // Note: This is a simple implementation. For better UX, use a proper dialog manager.
+              // We check if we are already showing a dialog by checking the top route?
+              // Or we can just show it and rely on the state change to close it?
+              // A common pattern is to show a non-dismissible dialog.
 
-            // To avoid multiple dialogs, we can use a boolean flag in the State class,
-            // or just show a SnackBar with progress?
-            // User said "dialog upload".
+              // However, since state updates frequently for progress, we shouldn't push a new dialog every time.
+              // We can check if the current state was NOT LotoUploading before.
+              // But BlocListener doesn't give previous state easily unless we use listenWhen.
 
-            // Let's try to show a dialog that listens to the bloc itself?
-            // Or just show one dialog and let it rebuild?
+              // Let's use a simpler approach: The builder handles the "Loading" overlay if we want inline.
+              // But the user asked for a "dialog upload".
 
-            // Actually, showing a dialog from listener is tricky with progress updates.
-            // Best way: Show dialog ONCE when starting.
-            // But how do we know it started?
-            // We can check `if (state.uploadedCount == 0)`.
-            if (state.uploadedCount == 0) {
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder:
-                    (dialogContext) => BlocProvider.value(
-                      value: context.read<LotoCubit>(),
-                      child: BlocBuilder<LotoCubit, LotoState>(
-                        builder: (context, state) {
-                          double? progress;
-                          String text = 'Uploading...';
+              // To avoid multiple dialogs, we can use a boolean flag in the State class,
+              // or just show a SnackBar with progress?
+              // User said "dialog upload".
 
-                          if (state is LotoUploading) {
-                            if (state.totalCount > 0) {
-                              progress = state.uploadedCount / state.totalCount;
-                              text =
-                                  'Uploading ${state.uploadedCount}/${state.totalCount}';
+              // Let's try to show a dialog that listens to the bloc itself?
+              // Or just show one dialog and let it rebuild?
+
+              // Actually, showing a dialog from listener is tricky with progress updates.
+              // Best way: Show dialog ONCE when starting.
+              // But how do we know it started?
+              // We can check `if (state.uploadedCount == 0)`.
+              if (state.uploadedCount == 0) {
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder:
+                      (dialogContext) => BlocProvider.value(
+                        value: context.read<LotoCubit>(),
+                        child: BlocBuilder<LotoCubit, LotoState>(
+                          builder: (context, state) {
+                            double? progress;
+                            String text = 'Uploading...';
+
+                            if (state is LotoUploading) {
+                              if (state.totalCount > 0) {
+                                progress =
+                                    state.uploadedCount / state.totalCount;
+                                text =
+                                    'Uploading ${state.uploadedCount}/${state.totalCount}';
+                              }
                             }
-                          }
 
-                          return AlertDialog(
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const CircularProgressIndicator(),
-                                const SizedBox(height: 16),
-                                Text(text),
-                                if (progress != null) ...[
-                                  const SizedBox(height: 8),
-                                  LinearProgressIndicator(value: progress),
+                            return AlertDialog(
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const CircularProgressIndicator(),
+                                  const SizedBox(height: 16),
+                                  Text(text),
+                                  if (progress != null) ...[
+                                    const SizedBox(height: 8),
+                                    LinearProgressIndicator(value: progress),
+                                  ],
                                 ],
-                              ],
-                            ),
-                          );
-                        },
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
+                );
+              }
+            } else if (state is LotoUploadSuccess) {
+              // Close dialog
+              Navigator.of(context).pop(); // Pop the dialog
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            } else if (state is LotoUploadError) {
+              // Close dialog
+              Navigator.of(context).pop(); // Pop the dialog
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.red,
+                ),
               );
             }
-          } else if (state is LotoUploadSuccess) {
-            // Close dialog
-            Navigator.of(context).pop(); // Pop the dialog
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.green,
-              ),
-            );
-          } else if (state is LotoUploadError) {
-            // Close dialog
-            Navigator.of(context).pop(); // Pop the dialog
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        },
-        builder: (context, state) {
-          LotoSession? session;
-          List<LotoEntity> records = [];
+          },
+          builder: (context, state) {
+            LotoSession? session;
+            List<LotoEntity> records = [];
 
-          if (state is LotoLoaded) {
-            session = state.session;
-            records = state.records;
-          } else if (state is LotoUploading) {
-            session = state.session;
-            records = state.records;
-          } else if (state is LotoUploadSuccess) {
-            session = state.session;
-            records = state.records;
-          } else if (state is LotoUploadError) {
-            session = state.session;
-            records = state.records;
-          } else if (state is LotoCapturing) {
-            session = state.session;
-            records = state.records;
-          } else if (state is LotoLoading) {
-            return _buildSkeletonLoader();
-          } else if (state is LotoError) {
-            return Center(child: Text('Error: ${state.message}'));
-          }
+            if (state is LotoLoaded) {
+              session = state.session;
+              records = state.records;
+            } else if (state is LotoUploading) {
+              session = state.session;
+              records = state.records;
+            } else if (state is LotoUploadSuccess) {
+              session = state.session;
+              records = state.records;
+            } else if (state is LotoUploadError) {
+              session = state.session;
+              records = state.records;
+            } else if (state is LotoCapturing) {
+              session = state.session;
+              records = state.records;
+            } else if (state is LotoLoading) {
+              return _buildSkeletonLoader();
+            } else if (state is LotoError) {
+              return Center(child: Text('Error: ${state.message}'));
+            }
 
-          session ??= widget.session;
+            session ??= widget.session;
 
-          // If we still have no session (e.g. initial loading failed), show error or skeleton
-          // But we handled LotoLoading above.
+            // If we still have no session (e.g. initial loading failed), show error or skeleton
+            // But we handled LotoLoading above.
 
-          return BlocBuilder<ManpowerCubit, ManpowerState>(
-            builder: (context, manpowerState) {
-              // Lookup names
-              String fuelmanDisplay = session!.fuelman;
-              String operatorDisplay = session!.operatorName;
+            return BlocBuilder<ManpowerCubit, ManpowerState>(
+              builder: (context, manpowerState) {
+                // Lookup names
+                String fuelmanDisplay = session!.fuelman;
+                String operatorDisplay = session!.operatorName;
 
-              if (manpowerState is ManpowerSynced) {
-                final fuelmanEntity =
-                    manpowerState.fuelmen
-                        .where((e) => e.nrp == session!.fuelman)
-                        .firstOrNull;
-                if (fuelmanEntity != null) {
-                  fuelmanDisplay = fuelmanEntity.nama ?? session!.fuelman;
+                if (manpowerState is ManpowerSynced) {
+                  final fuelmanEntity =
+                      manpowerState.fuelmen
+                          .where((e) => e.nrp == session!.fuelman)
+                          .firstOrNull;
+                  if (fuelmanEntity != null) {
+                    fuelmanDisplay = fuelmanEntity.nama ?? session!.fuelman;
+                  }
+
+                  final operatorEntity =
+                      manpowerState.operators
+                          .where((e) => e.nrp == session!.operatorName)
+                          .firstOrNull;
+                  if (operatorEntity != null) {
+                    operatorDisplay =
+                        operatorEntity.nama ?? session!.operatorName;
+                  }
                 }
 
-                final operatorEntity =
-                    manpowerState.operators
-                        .where((e) => e.nrp == session!.operatorName)
-                        .firstOrNull;
-                if (operatorEntity != null) {
-                  operatorDisplay =
-                      operatorEntity.nama ?? session!.operatorName;
-                }
-              }
-
-              return Column(
-                children: [
-                  Flexible(
-                    flex: 0,
-                    child: Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade200),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.03),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          // Header: Title & Number
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Session Details',
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: -0.5,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFFF2F2F7,
-                                    ), // iOS System Grey 6
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    session!.nomor,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontFamily: 'monospace',
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF8E8E93),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                return Column(
+                  children: [
+                    Flexible(
+                      flex: 0,
+                      child: Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
-                          ),
-                          const Divider(height: 1),
-
-                          // Content
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              children: [
-                                // Warehouse & Date
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildInfoItem(
-                                        'WAREHOUSE',
-                                        session!.warehouseCode,
-                                        icon: Icons.warehouse_outlined,
-                                      ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            // Header: Title & Number
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Session Details',
+                                    style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: -0.5,
+                                      color: Colors.black87,
                                     ),
-                                    Expanded(
-                                      child: _buildInfoItem(
-                                        'DATE',
-                                        session!.dateTime
-                                            .toLocal()
-                                            .toString()
-                                            .split(' ')[0],
-                                        icon: Icons.calendar_today_outlined,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 20),
-
-                                // Personnel
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF9F9F9),
-                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: Row(
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(
+                                        0xFFF2F2F7,
+                                      ), // iOS System Grey 6
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      session!.nomor,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontFamily: 'monospace',
+                                        fontWeight: FontWeight.w500,
+                                        color: Color(0xFF8E8E93),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Divider(height: 1),
+
+                            // Content
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                children: [
+                                  // Warehouse & Date & Shift
+                                  Row(
                                     children: [
                                       Expanded(
-                                        child: _buildInfoItem(
-                                          'FUELMAN',
-                                          fuelmanDisplay,
-                                          isName: true,
+                                        flex: 2,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.warehouse_outlined,
+                                                  size: 12,
+                                                  color: Colors.grey[500],
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'WAREHOUSE',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: Colors.grey[500],
+                                                    fontWeight: FontWeight.bold,
+                                                    letterSpacing: 0.5,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+
+                                            // Value with Unit ID
+                                            () {
+                                              String? unitId;
+                                              final storageState =
+                                                  context
+                                                      .read<StorageCubit>()
+                                                      .state;
+                                              if (storageState
+                                                  is StorageSynced) {
+                                                unitId =
+                                                    storageState.warehouses
+                                                        .where(
+                                                          (e) =>
+                                                              e.warehouseId ==
+                                                              session!
+                                                                  .warehouseCode,
+                                                        )
+                                                        .firstOrNull
+                                                        ?.unitId;
+                                              }
+
+                                              return RichText(
+                                                text: TextSpan(
+                                                  text: session!.warehouseCode,
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight:
+                                                        FontWeight.normal,
+                                                    color: Colors.black87,
+                                                  ),
+                                                  children: [
+                                                    if (unitId != null)
+                                                      TextSpan(
+                                                        text: '  $unitId',
+                                                        style: const TextStyle(
+                                                          fontSize: 12,
+                                                          color: Color(
+                                                            0xFF8E8E93,
+                                                          ), // iOS System Grey
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              );
+                                            }(),
+                                          ],
                                         ),
                                       ),
-                                      Container(
-                                        width: 1,
-                                        height: 30,
-                                        color: Colors.grey.shade300,
-                                      ),
-                                      const SizedBox(width: 16),
                                       Expanded(
+                                        flex: 2,
                                         child: _buildInfoItem(
-                                          'OPERATOR',
-                                          operatorDisplay,
-                                          isName: true,
+                                          'DATE',
+                                          session!.dateTime
+                                              .toLocal()
+                                              .toString()
+                                              .split(' ')[0],
+                                          icon: Icons.calendar_today_outlined,
                                         ),
+                                      ),
+                                      // Shift Icon
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            'SHIFT',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.grey[500],
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          session!.shift == 2
+                                              ? const Icon(
+                                                Icons.nightlight_round,
+                                                color: Colors.black,
+                                                size: 20,
+                                              )
+                                              : const Icon(
+                                                Icons.wb_sunny_rounded,
+                                                color: Colors.amber,
+                                                size: 20,
+                                              ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                ),
-                                const SizedBox(height: 16),
+                                  const SizedBox(height: 20),
 
-                                // Shift Badge
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
+                                  // Personnel
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFE5F1FB),
-                                      borderRadius: BorderRadius.circular(20),
+                                      color: const Color(0xFFF9F9F9),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: Text(
-                                      'Shift ${session!.shift}',
-                                      style: const TextStyle(
-                                        color: Color(0xFF007AFF),
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 12,
-                                      ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: _buildInfoItem(
+                                            'FUELMAN',
+                                            fuelmanDisplay,
+                                            isName: true,
+                                          ),
+                                        ),
+                                        Container(
+                                          width: 1,
+                                          height: 30,
+                                          color: Colors.grey.shade300,
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: _buildInfoItem(
+                                            'OPERATOR',
+                                            operatorDisplay,
+                                            isName: true,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Flexible(
-                    flex: 1,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child:
-                          records.isEmpty
-                              ? const Center(child: Text('No records found'))
-                              : GridView.builder(
-                                padding: const EdgeInsets.only(
-                                  top: 8,
-                                  bottom: 88,
-                                ),
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 3,
-                                      crossAxisSpacing: 4,
-                                      mainAxisSpacing: 4,
-                                    ),
-                                itemCount: records.length,
-                                itemBuilder: (context, index) {
-                                  final record = records[index];
-                                  final isLocal =
-                                      !record.photoPath.startsWith('http');
+                                  const SizedBox(height: 16),
 
-                                  return GestureDetector(
-                                    onTap: () {
-                                      // Open zoomable image viewer
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder:
-                                              (context) => Scaffold(
-                                                appBar: AppBar(
-                                                  backgroundColor: Colors.black,
-                                                  iconTheme:
-                                                      const IconThemeData(
-                                                        color: Colors.white,
-                                                      ),
-                                                ),
-                                                backgroundColor: Colors.black,
-                                                body: PhotoView(
-                                                  imageProvider:
-                                                      isLocal
-                                                          ? FileImage(
-                                                                File(
-                                                                  record
-                                                                      .photoPath,
-                                                                ),
-                                                              )
-                                                              as ImageProvider
-                                                          : CachedNetworkImageProvider(
-                                                            record.photoPath,
-                                                          ),
-                                                  heroAttributes:
-                                                      PhotoViewHeroAttributes(
-                                                        tag: record.photoPath,
-                                                      ),
-                                                ),
+                                  // Status Badges
+
+                                  // Status Badges
+                                  () {
+                                    final rCount =
+                                        records
+                                            .where(
+                                              (r) => r.photoPath.startsWith(
+                                                'http',
                                               ),
-                                        ),
-                                      );
-                                    },
-                                    child: Hero(
-                                      tag: record.photoPath,
-                                      child: Stack(
-                                        fit: StackFit.expand,
-                                        children: [
-                                          isLocal
-                                              ? Image.file(
-                                                File(record.photoPath),
-                                                fit: BoxFit.cover,
-                                              )
-                                              : CachedNetworkImage(
-                                                imageUrl: record.photoPath,
-                                                fit: BoxFit.cover,
-                                                placeholder:
-                                                    (context, url) =>
-                                                        Shimmer.fromColors(
-                                                          baseColor:
-                                                              Colors.grey[300]!,
-                                                          highlightColor:
-                                                              Colors.grey[100]!,
-                                                          child: Container(
-                                                            color: Colors.white,
-                                                          ),
-                                                        ),
-                                                errorWidget:
-                                                    (context, url, error) =>
-                                                        const Icon(Icons.error),
-                                              ),
-                                          Positioned(
-                                            bottom: 0,
-                                            left: 0,
-                                            right: 0,
-                                            child: Container(
-                                              color: Colors.black54,
-                                              padding: const EdgeInsets.all(2),
-                                              child: Text(
-                                                record.codeNumber,
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 10,
+                                            )
+                                            .length;
+                                    final lCount =
+                                        records
+                                            .where(
+                                              (r) =>
+                                                  !r.photoPath.startsWith(
+                                                    'http',
+                                                  ),
+                                            )
+                                            .length;
+
+                                    return Row(
+                                      children: [
+                                        // Remote Status
+                                        if (rCount > 0) ...[
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(
+                                                0xFFE8F5E9,
+                                              ), // Light Green
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.check_circle,
+                                                  size: 14,
+                                                  color: Color(0xFF34C759),
                                                 ),
-                                                textAlign: TextAlign.center,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  '$rCount Uploaded',
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: Color(0xFF34C759),
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                          if (isLocal) ...[
-                                            const Positioned(
-                                              top: 4,
-                                              right: 4,
-                                              child: Icon(
-                                                Icons.pending,
-                                                color: Colors.orange,
-                                                size: 16,
+                                          const SizedBox(width: 8),
+                                        ],
+
+                                        // Local Status
+                                        if (lCount > 0) ...[
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(
+                                                0xFFFFF3E0,
+                                              ), // Light Orange
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.pending,
+                                                  size: 14,
+                                                  color: Color(0xFFFF9500),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  '$lCount Pending',
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: Color(0xFFFF9500),
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+
+                                        if (rCount == 0 && lCount == 0)
+                                          const Text(
+                                            'No records yet',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Color(0xFFC7C7CC),
+                                              fontStyle: FontStyle.italic,
+                                            ),
+                                          ),
+                                      ],
+                                    );
+                                  }(),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Flexible(
+                      flex: 1,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child:
+                            records.isEmpty
+                                ? const Center(child: Text('No records found'))
+                                : GridView.builder(
+                                  padding: const EdgeInsets.only(
+                                    top: 8,
+                                    bottom: 88,
+                                  ),
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 3,
+                                        crossAxisSpacing: 4,
+                                        mainAxisSpacing: 4,
+                                      ),
+                                  itemCount: records.length,
+                                  itemBuilder: (context, index) {
+                                    final record = records[index];
+                                    final isLocal =
+                                        !record.photoPath.startsWith('http');
+
+                                    return GestureDetector(
+                                      onTap: () {
+                                        // Open zoomable image viewer
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder:
+                                                (context) => Scaffold(
+                                                  appBar: AppBar(
+                                                    backgroundColor:
+                                                        Colors.black,
+                                                    iconTheme:
+                                                        const IconThemeData(
+                                                          color: Colors.white,
+                                                        ),
+                                                  ),
+                                                  backgroundColor: Colors.black,
+                                                  body: PhotoView(
+                                                    imageProvider:
+                                                        isLocal
+                                                            ? FileImage(
+                                                                  File(
+                                                                    record
+                                                                        .photoPath,
+                                                                  ),
+                                                                )
+                                                                as ImageProvider
+                                                            : CachedNetworkImageProvider(
+                                                              record.photoPath,
+                                                            ),
+                                                    heroAttributes:
+                                                        PhotoViewHeroAttributes(
+                                                          tag: record.photoPath,
+                                                        ),
+                                                  ),
+                                                ),
+                                          ),
+                                        );
+                                      },
+                                      child: Hero(
+                                        tag: record.photoPath,
+                                        child: Stack(
+                                          fit: StackFit.expand,
+                                          children: [
+                                            isLocal
+                                                ? Image.file(
+                                                  File(record.photoPath),
+                                                  fit: BoxFit.cover,
+                                                )
+                                                : CachedNetworkImage(
+                                                  imageUrl: record.photoPath,
+                                                  fit: BoxFit.cover,
+                                                  placeholder:
+                                                      (
+                                                        context,
+                                                        url,
+                                                      ) => Shimmer.fromColors(
+                                                        baseColor:
+                                                            Colors.grey[300]!,
+                                                        highlightColor:
+                                                            Colors.grey[100]!,
+                                                        child: Container(
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                  errorWidget:
+                                                      (context, url, error) =>
+                                                          const Icon(
+                                                            Icons.error,
+                                                          ),
+                                                ),
+                                            Positioned(
+                                              bottom: 0,
+                                              left: 0,
+                                              right: 0,
+                                              child: Container(
+                                                color: Colors.black54,
+                                                padding: const EdgeInsets.all(
+                                                  2,
+                                                ),
+                                                child: Text(
+                                                  record.codeNumber,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 10,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
                                               ),
                                             ),
-                                            Positioned(
-                                              top: -8,
-                                              left: -8,
-                                              child: GestureDetector(
-                                                onTap: () {
-                                                  context
-                                                      .read<LotoCubit>()
-                                                      .delete(record);
-                                                },
-                                                child: Container(
-                                                  padding: const EdgeInsets.all(
-                                                    8,
-                                                  ), // Hit target padding
+                                            if (isLocal) ...[
+                                              const Positioned(
+                                                top: 4,
+                                                right: 4,
+                                                child: Icon(
+                                                  Icons.pending,
+                                                  color: Colors.orange,
+                                                  size: 16,
+                                                ),
+                                              ),
+                                              Positioned(
+                                                top: -8,
+                                                left: -8,
+                                                child: GestureDetector(
+                                                  onTap: () {
+                                                    context
+                                                        .read<LotoCubit>()
+                                                        .delete(record);
+                                                  },
                                                   child: Container(
-                                                    decoration:
-                                                        const BoxDecoration(
-                                                          color: Colors.red,
-                                                          shape:
-                                                              BoxShape.circle,
-                                                          boxShadow: [
-                                                            BoxShadow(
-                                                              color:
-                                                                  Colors
-                                                                      .black26,
-                                                              blurRadius: 2,
-                                                              offset: Offset(
-                                                                0,
-                                                                1,
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                          8,
+                                                        ), // Hit target padding
+                                                    child: Container(
+                                                      decoration:
+                                                          const BoxDecoration(
+                                                            color: Colors.red,
+                                                            shape:
+                                                                BoxShape.circle,
+                                                            boxShadow: [
+                                                              BoxShadow(
+                                                                color:
+                                                                    Colors
+                                                                        .black26,
+                                                                blurRadius: 2,
+                                                                offset: Offset(
+                                                                  0,
+                                                                  1,
+                                                                ),
                                                               ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                    child: const Icon(
-                                                      Icons.close_rounded,
-                                                      size: 16,
-                                                      color: Colors.white,
+                                                            ],
+                                                          ),
+                                                      child: const Icon(
+                                                        Icons.close_rounded,
+                                                        size: 16,
+                                                        color: Colors.white,
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
                                               ),
-                                            ),
-                                          ] else
-                                            const Positioned(
-                                              top: 4,
-                                              right: 4,
-                                              child: Icon(
-                                                Icons.check_circle,
-                                                color: Colors.green,
-                                                size: 16,
+                                            ] else
+                                              const Positioned(
+                                                top: 4,
+                                                right: 4,
+                                                child: Icon(
+                                                  Icons.check_circle,
+                                                  color: Colors.green,
+                                                  size: 16,
+                                                ),
                                               ),
-                                            ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                },
-                              ),
+                                    );
+                                  },
+                                ),
+                      ),
                     ),
-                  ),
-                ],
-              );
-            },
-          );
-        },
+                  ],
+                );
+              },
+            );
+          },
+        ),
       ),
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,

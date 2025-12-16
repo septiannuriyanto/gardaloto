@@ -273,8 +273,17 @@ class _LotoSessionsViewState extends State<_LotoSessionsView> {
                                     color: Colors.transparent,
                                     child: InkWell(
                                       borderRadius: BorderRadius.circular(16),
-                                      onTap: () {
-                                        context.push('/loto/review', extra: session);
+                                      onTap: () async {
+                                        final result = await context.push('/loto/review', extra: session);
+                                        if (result != null && result is Map && context.mounted) {
+                                           final nomor = result['nomor'] as String?;
+                                           final remote = result['remote'] as int?;
+                                           final local = result['local'] as int?;
+                                           
+                                           if (nomor != null && remote != null && local != null) {
+                                              context.read<LotoSessionsCubit>().updateSessionCounts(nomor, remote, local);
+                                           }
+                                        }
                                       },
                                       child: Padding(
                                         padding: const EdgeInsets.all(16.0),
@@ -285,14 +294,40 @@ class _LotoSessionsViewState extends State<_LotoSessionsView> {
                                             Row(
                                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                               children: [
-                                                Text(
-                                                  session.warehouseCode,
-                                                  style: const TextStyle(
-                                                    fontSize: 17,
-                                                    fontWeight: FontWeight.w600,
-                                                    letterSpacing: -0.5,
-                                                    color: Colors.black87,
-                                                  ),
+                                                // Warehouse + Unit ID
+                                                BlocBuilder<StorageCubit, StorageState>(
+                                                  builder: (context, storageState) {
+                                                    String? unitId;
+                                                    if (storageState is StorageSynced) {
+                                                      unitId = storageState.warehouses
+                                                          .where((e) => e.warehouseId == session.warehouseCode)
+                                                          .firstOrNull
+                                                          ?.unitId;
+                                                    }
+
+                                                    return RichText(
+                                                      text: TextSpan(
+                                                        text: session.warehouseCode,
+                                                        style: const TextStyle(
+                                                          fontSize: 17,
+                                                          fontWeight: FontWeight.w600,
+                                                          letterSpacing: -0.5,
+                                                          color: Colors.black87,
+                                                        ),
+                                                        children: [
+                                                          if (unitId != null)
+                                                            TextSpan(
+                                                              text: '  $unitId',
+                                                              style: const TextStyle(
+                                                                fontSize: 13,
+                                                                fontWeight: FontWeight.normal,
+                                                                color: Color(0xFF8E8E93), // iOS System Grey
+                                                              ),
+                                                            ),
+                                                        ],
+                                                      ),
+                                                    );
+                                                  },
                                                 ),
                                                 Container(
                                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
