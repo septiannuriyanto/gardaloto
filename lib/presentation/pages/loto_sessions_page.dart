@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:gardaloto/presentation/cubit/loto_sessions_cubit.dart';
 import 'package:gardaloto/presentation/cubit/storage_cubit.dart';
 import 'package:gardaloto/presentation/cubit/manpower_cubit.dart';
+import 'package:gardaloto/presentation/cubit/auth_cubit.dart';
+import 'package:gardaloto/presentation/cubit/auth_state.dart';
 import 'package:gardaloto/domain/entities/storage_entity.dart';
 import 'package:gardaloto/core/service_locator.dart';
 import 'package:gardaloto/presentation/widget/sidebar.dart';
@@ -603,12 +605,24 @@ class _LotoSessionsViewState extends State<_LotoSessionsView> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Navigate to LotoPage in New Mode (no extra)
-          context.push('/loto/entry');
+      floatingActionButton: BlocBuilder<AuthCubit, AuthState>(
+        builder: (context, authState) {
+          bool canCreate = false;
+          if (authState is AuthAuthenticated) {
+            final user = authState.user;
+            final allowedPos = [0, 1, 2, 3, 5];
+            canCreate = allowedPos.contains(user.position);
+          }
+
+          return FloatingActionButton(
+            backgroundColor: canCreate ? null : Colors.grey,
+            onPressed: canCreate ? () {
+              // Navigate to LotoPage in New Mode (no extra)
+              context.push('/loto/entry');
+            } : null,
+            child: const Icon(Icons.post_add),
+          );
         },
-        child: const Icon(Icons.post_add),
       ),
     );
   }

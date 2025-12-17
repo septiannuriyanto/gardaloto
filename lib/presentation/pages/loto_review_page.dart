@@ -11,6 +11,8 @@ import 'package:gardaloto/presentation/cubit/loto_cubit.dart';
 import 'package:gardaloto/presentation/cubit/loto_state.dart';
 import 'package:gardaloto/presentation/cubit/manpower_cubit.dart';
 import 'package:gardaloto/presentation/cubit/storage_cubit.dart';
+import 'package:gardaloto/presentation/cubit/auth_cubit.dart';
+import 'package:gardaloto/presentation/cubit/auth_state.dart';
 
 import 'package:gardaloto/presentation/widget/capture_bottomsheet.dart';
 import 'package:image_picker/image_picker.dart';
@@ -851,21 +853,42 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
           },
         ),
       ),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            heroTag: 'camera',
-            onPressed: () => _captureImage(context, ImageSource.camera),
-            child: const Icon(Icons.camera_alt),
-          ),
-          const SizedBox(height: 16),
-          FloatingActionButton(
-            heroTag: 'gallery',
-            onPressed: () => _captureImage(context, ImageSource.gallery),
-            child: const Icon(Icons.photo_library),
-          ),
-        ],
+      floatingActionButton: BlocBuilder<AuthCubit, AuthState>(
+        builder: (context, authState) {
+          bool canEdit = false;
+          if (authState is AuthAuthenticated) {
+            final user = authState.user;
+            final allowedPos = [0, 1, 2, 3, 5];
+            final isAllowedPos = allowedPos.contains(user.position);
+            
+            // Allow if user is fuelman OR operator
+            // AND user has allowed position
+            final isOwner =
+                user.nrp == widget.session.fuelman ||
+                user.nrp == widget.session.operatorName;
+            
+            canEdit = isAllowedPos && isOwner;
+          }
+
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              FloatingActionButton(
+                heroTag: 'camera',
+                backgroundColor: canEdit ? null : Colors.grey,
+                onPressed: canEdit ? () => _captureImage(context, ImageSource.camera) : null,
+                child: const Icon(Icons.camera_alt),
+              ),
+              const SizedBox(height: 16),
+              FloatingActionButton(
+                heroTag: 'gallery',
+                backgroundColor: canEdit ? null : Colors.grey,
+                onPressed: canEdit ? () => _captureImage(context, ImageSource.gallery) : null,
+                child: const Icon(Icons.photo_library),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
