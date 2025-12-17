@@ -13,8 +13,8 @@ import 'package:gardaloto/presentation/cubit/manpower_cubit.dart';
 import 'package:gardaloto/presentation/cubit/storage_cubit.dart';
 import 'package:gardaloto/presentation/cubit/auth_cubit.dart';
 import 'package:gardaloto/presentation/cubit/auth_state.dart';
-
 import 'package:gardaloto/presentation/widget/capture_bottomsheet.dart';
+import 'package:gardaloto/presentation/widget/full_screen_gallery.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:shimmer/shimmer.dart';
@@ -685,39 +685,14 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
 
                                     return GestureDetector(
                                       onTap: () {
-                                        // Open zoomable image viewer
+                                        // Open zoomable image gallery
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
                                             builder:
-                                                (context) => Scaffold(
-                                                  appBar: AppBar(
-                                                    backgroundColor:
-                                                        Colors.black,
-                                                    iconTheme:
-                                                        const IconThemeData(
-                                                          color: Colors.white,
-                                                        ),
-                                                  ),
-                                                  backgroundColor: Colors.black,
-                                                  body: PhotoView(
-                                                    imageProvider:
-                                                        isLocal
-                                                            ? FileImage(
-                                                                  File(
-                                                                    record
-                                                                        .photoPath,
-                                                                  ),
-                                                                )
-                                                                as ImageProvider
-                                                            : CachedNetworkImageProvider(
-                                                              record.photoPath,
-                                                            ),
-                                                    heroAttributes:
-                                                        PhotoViewHeroAttributes(
-                                                          tag: record.photoPath,
-                                                        ),
-                                                  ),
+                                                (context) => FullScreenGallery(
+                                                  records: records,
+                                                  initialIndex: index,
                                                 ),
                                           ),
                                         );

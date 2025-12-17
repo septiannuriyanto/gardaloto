@@ -7,8 +7,9 @@ import 'package:gardaloto/presentation/cubit/loto_cubit.dart';
 
 class LotoCard extends StatelessWidget {
   final LotoEntity entity;
+  final VoidCallback? onImageTap;
 
-  const LotoCard({super.key, required this.entity});
+  const LotoCard({super.key, required this.entity, this.onImageTap});
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +26,7 @@ class LotoCard extends StatelessWidget {
                 final file = File(entity.photoPath);
                 if (file.existsSync()) {
                   return GestureDetector(
-                    onTap: () {
+                    onTap: onImageTap ?? () {
                       showDialog(
                         context: context,
                         builder:

@@ -18,6 +18,7 @@ import 'package:gardaloto/core/service_locator.dart';
 import 'package:gardaloto/presentation/widget/sidebar.dart';
 import 'package:gardaloto/presentation/cubit/manpower_cubit.dart';
 import 'package:gardaloto/presentation/cubit/storage_cubit.dart';
+import 'package:gardaloto/presentation/widget/full_screen_gallery.dart';
 
 class LotoPage extends StatefulWidget {
   const LotoPage({super.key});
@@ -433,9 +434,22 @@ class _LotoPageState extends State<LotoPage> {
                                 ),
                                 itemCount: state.records.length,
                                 itemBuilder:
-                                    (_, i) =>
-                                        LotoCard(entity: state.records[i]),
-                              ),
+                                  (_, i) => LotoCard(
+                                    entity: state.records[i],
+                                    onImageTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder:
+                                              (context) => FullScreenGallery(
+                                                records: state.records,
+                                                initialIndex: i,
+                                              ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                            ),
                     ),
                   ),
                 ],
