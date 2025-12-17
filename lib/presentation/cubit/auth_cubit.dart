@@ -36,10 +36,10 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  Future<void> login(String email, String password) async {
+  Future<void> login(String nrp, String password) async {
     emit(AuthLoading());
     try {
-      final user = await loginUser(email, password).timeout(
+      final user = await loginUser(nrp, password).timeout(
         const Duration(seconds: 10),
         onTimeout: () {
           throw Exception('Login request timed out');

@@ -3,6 +3,7 @@ import 'package:gardaloto/domain/entities/loto_session.dart';
 import 'package:gardaloto/domain/entities/loto_master_record.dart';
 import 'package:gardaloto/domain/entities/manpower_entity.dart';
 import 'package:gardaloto/domain/entities/storage_entity.dart';
+import 'package:gardaloto/domain/entities/user_entity.dart';
 
 /// Dialog shown when the list is empty to collect session/header info.
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -14,12 +15,14 @@ class EmptyListSessionDialog extends StatefulWidget {
   final LotoMasterRecord? initialMaster;
   final ManpowerCubit manpowerCubit;
   final StorageCubit storageCubit;
+  final UserEntity? currentUser;
 
   const EmptyListSessionDialog({
     super.key,
     this.initialMaster,
     required this.manpowerCubit,
     required this.storageCubit,
+    this.currentUser,
   });
 
   @override
@@ -245,13 +248,54 @@ class _EmptyListSessionDialogState extends State<EmptyListSessionDialog> {
                     // If _fuelman is set from master but not in list, we should probably add it or clear it.
                     // Let's just use the dropdown.
 
+                    // Auto-fill logic
+                    String? defaultFuelman;
+                    String? defaultOperator;
+
+                    if (widget.currentUser != null && widget.initialMaster == null) {
+                      if (fuelmanItems.any((e) => e.value == widget.currentUser!.nrp)) {
+                        defaultFuelman = widget.currentUser!.nrp;
+                      }
+                      if (operatorItems.any((e) => e.value == widget.currentUser!.nrp)) {
+                        defaultOperator = widget.currentUser!.nrp;
+                      }
+                    }
+
+                    // Explicitly set _fuelman/_operator if they are null and we have a default
+                    // But we can't setState here.
+                    // Instead, use the logic in 'value'.
+                    // BUT, if we submit, we need the values in _fuelman/_operator.
+                    // So we must ensure onSave actually captures it, or we initialize them in initState if possible
+                    // But items are not available in initState.
+                    // We can rely on FormField's onSaved, OR
+                    // Just set 'value' and assume user accepts it.
+                    // If user Hits SAVE, we read _fuelman. If _fuelman is null, we need to read 'value'.
+                    // Actually, if value is displayed, it doesn't mean _fuelman is set.
+                    // DropdownButtonFormField updates via onChanged.
+                    // To make this robust:
+                    // Use a 'local' variable for effective value.
+                    // And in OnChanged, update _fuelman.
+                    // AND in SAVE button, if _fuelman is null, check default.
+                    
+                    final effectiveFuelman = _fuelman ?? defaultFuelman;
+                    final effectiveOperator = _operator ?? defaultOperator;
+
+                    // Update state if needed so Save works? No, don't trigger rebuilds/setState here.
+                    // We'll handle "Save" logic to use defaults if null.
+                    // OR better: use WidgetsBinding to set state once? No.
+                    
+                    // We will just use effectiveFuelman for display. 
+                    // And modify the SAVE logic to use effective values or 
+                    // Modify onChanged to be robust. 
+                    // But simpler: just initialize _fuelman/_operator if we find a match! 
+                    // But we are in build. 
+                    // Let's just use FormField which has 'initialValue' (only works once).
+                    // DropdownButtonFormField uses 'value'.
+                    
                     return Column(
                       children: [
                         DropdownButtonFormField<String>(
-                          value:
-                              fuelmanItems.any((e) => e.value == _fuelman)
-                                  ? _fuelman
-                                  : null,
+                          value: effectiveFuelman,
                           decoration: const InputDecoration(
                             labelText: 'Nama Fuelman',
                           ),
@@ -259,12 +303,10 @@ class _EmptyListSessionDialogState extends State<EmptyListSessionDialog> {
                           onChanged: (v) => setState(() => _fuelman = v),
                           validator: (v) => v == null ? 'Required' : null,
                           isExpanded: true,
+                          onSaved: (v) => _fuelman = v,
                         ),
                         DropdownButtonFormField<String>(
-                          value:
-                              operatorItems.any((e) => e.value == _operator)
-                                  ? _operator
-                                  : null,
+                          value: effectiveOperator,
                           decoration: const InputDecoration(
                             labelText: 'Nama Operator',
                           ),
@@ -272,6 +314,7 @@ class _EmptyListSessionDialogState extends State<EmptyListSessionDialog> {
                           onChanged: (v) => setState(() => _operator = v),
                           validator: (v) => v == null ? 'Required' : null,
                           isExpanded: true,
+                          onSaved: (v) => _operator = v,
                         ),
                       ],
                     );
@@ -338,13 +381,16 @@ class _EmptyListSessionDialogState extends State<EmptyListSessionDialog> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (!_formKey.currentState!.validate()) return;
+              final form = _formKey.currentState;
+              if (form == null || !form.validate()) return;
+              form.save();
+              
               final nomor = _generateNomor(_dateTime, currentShift, _warehouse);
               final session = LotoSession(
                 dateTime: _dateTime,
                 shift: currentShift,
-                fuelman: _fuelman!.trim(),
-                operatorName: _operator!.trim(),
+                fuelman: _fuelman?.trim() ?? '',
+                operatorName: _operator?.trim() ?? '',
                 warehouseCode: _warehouse,
                 nomor: nomor,
               );

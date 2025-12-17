@@ -3,6 +3,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gardaloto/presentation/cubit/auth_cubit.dart';
+import 'package:gardaloto/presentation/cubit/auth_state.dart';
 import 'package:gardaloto/domain/entities/loto_entity.dart';
 import 'package:gardaloto/core/image_utils.dart';
 import 'package:gardaloto/presentation/cubit/loto_cubit.dart';
@@ -28,10 +30,10 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
   // Dummy unit data for chips (Synced with CaptureFormPage)
   final List<String> _dummyUnits = [
     'UNIT-001',
-    'UNIT-002', 
+    'UNIT-002',
     'DT-01',
-    'EX-02', 
-    'DZ-03'
+    'EX-02',
+    'DZ-03',
   ];
 
   // watermark editors
@@ -51,7 +53,10 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
 
         // Trigger auto-location if needed
         final state = context.read<LotoCubit>().state;
-        if (state is LotoCapturing && state.lat == 0 && state.lng == 0 && !state.hasAttemptedGpsFetch) {
+        if (state is LotoCapturing &&
+            state.lat == 0 &&
+            state.lng == 0 &&
+            !state.hasAttemptedGpsFetch) {
           _fetchLocation();
         }
       }
@@ -63,7 +68,7 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
         final val = _textCtrl.text.trim();
         final state = context.read<LotoCubit>().state;
         if (state is LotoCapturing) {
-           _isDuplicate = state.records.any((r) => r.codeNumber == val);
+          _isDuplicate = state.records.any((r) => r.codeNumber == val);
         }
         _wm2Ctrl.text = 'UNIT: ${val.isEmpty ? '-' : val}';
         selectedCode = val.isEmpty ? null : val;
@@ -78,7 +83,10 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        cubit.updateLocationStatus(isLoading: false, error: 'Location services disabled');
+        cubit.updateLocationStatus(
+          isLoading: false,
+          error: 'Location services disabled',
+        );
         return;
       }
 
@@ -86,13 +94,19 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          cubit.updateLocationStatus(isLoading: false, error: 'Location permission denied');
+          cubit.updateLocationStatus(
+            isLoading: false,
+            error: 'Location permission denied',
+          );
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        cubit.updateLocationStatus(isLoading: false, error: 'Location permission denied forever');
+        cubit.updateLocationStatus(
+          isLoading: false,
+          error: 'Location permission denied forever',
+        );
         return;
       }
 
@@ -100,7 +114,8 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
       if (mounted) {
         cubit.updateLocation(position.latitude, position.longitude);
         // Also update watermark control for GPS
-        _wm3Ctrl.text = 'GPS: ${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
+        _wm3Ctrl.text =
+            'GPS: ${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
       }
     } catch (e) {
       if (mounted) {
@@ -114,9 +129,13 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
     final state = context.watch<LotoCubit>().state;
     if (state is! LotoCapturing) return const SizedBox();
 
+    // Get current user NRP
+    final authState = context.read<AuthCubit>().state;
+    final userNrp = authState is AuthAuthenticated ? authState.user.nrp : '-';
+
     // initialize watermark controllers when entering capturing state
     if (!_wmInitialized) {
-      _wm1Ctrl.text = 'NRP: NRP123456';
+      _wm1Ctrl.text = 'NRP: $userNrp';
       _wm2Ctrl.text = 'UNIT: ${selectedCode ?? '-'}';
       _wm3Ctrl.text =
           'GPS: ${state.lat.toStringAsFixed(5)}, ${state.lng.toStringAsFixed(5)}';
@@ -125,7 +144,8 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
     }
 
     // Auto update GPS watermark if state updates (e.g. from auto-fetch)
-    _wm3Ctrl.text = 'GPS: ${state.lat.toStringAsFixed(5)}, ${state.lng.toStringAsFixed(5)}';
+    _wm3Ctrl.text =
+        'GPS: ${state.lat.toStringAsFixed(5)}, ${state.lng.toStringAsFixed(5)}';
 
     return SafeArea(
       top: false,
@@ -146,12 +166,12 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                   // Header Row
-                   Row(
-                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                     children: [
-                       const SizedBox(width: 48), // Spacer for centering
-                       Container(
+                  // Header Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const SizedBox(width: 48), // Spacer for centering
+                      Container(
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
@@ -160,40 +180,52 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
                         ),
                       ),
                       IconButton(
-                        icon: state.isLocationLoading 
-                          ? const SizedBox(
-                              width: 16, 
-                              height: 16, 
-                              child: CircularProgressIndicator(strokeWidth: 2)
-                            )
-                          : const Icon(Icons.gps_fixed, size: 20),
+                        icon:
+                            state.isLocationLoading
+                                ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                                : const Icon(Icons.gps_fixed, size: 20),
                         tooltip: 'Refresh Location',
-                        onPressed: state.isLocationLoading ? null : _fetchLocation,
+                        onPressed:
+                            state.isLocationLoading ? null : _fetchLocation,
                       ),
-                     ],
-                   ),
+                    ],
+                  ),
                   const SizedBox(height: 8),
 
-                   // Location Error Indicator
-                   if (state.locationError != null) ...[
-                     Text("Location Error: ${state.locationError}", style: const TextStyle(fontSize: 12, color: Colors.red)),
-                     const SizedBox(height: 8),
-                   ],
+                  // Location Error Indicator
+                  if (state.locationError != null) ...[
+                    Text(
+                      "Location Error: ${state.locationError}",
+                      style: const TextStyle(fontSize: 12, color: Colors.red),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
 
-                   // Getting location indicator
-                   if (state.isLocationLoading) ...[
-                      const LinearProgressIndicator(minHeight: 2),
-                      const SizedBox(height: 4),
-                      const Text("Getting location...", style: TextStyle(fontSize: 10, color: Colors.grey)),
-                      const SizedBox(height: 12),
-                   ],
-
+                  // Getting location indicator
+                  if (state.isLocationLoading) ...[
+                    const LinearProgressIndicator(minHeight: 2),
+                    const SizedBox(height: 4),
+                    const Text(
+                      "Getting location...",
+                      style: TextStyle(fontSize: 10, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
 
                   /// photo preview
                   PhotoOverlay(
                     photoPath: state.photoPath,
-                    nrp: "NRP123456",
-                    code: _textCtrl.text.isEmpty ? "-" : _textCtrl.text, // Live update
+                    nrp: userNrp!,
+                    code:
+                        _textCtrl.text.isEmpty
+                            ? "-"
+                            : _textCtrl.text, // Live update
                     lat: state.lat,
                     lng: state.lng,
                     timestamp: state.timestamp,
@@ -209,19 +241,24 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
                         spacing: 8.0,
                         runSpacing: 4.0,
                         alignment: WrapAlignment.start,
-                        children: _dummyUnits
-                            .where((unit) => unit
-                                .toLowerCase()
-                                .contains(_textCtrl.text.toLowerCase()))
-                            .map((unit) {
-                          return ActionChip(
-                            label: Text(unit),
-                            onPressed: () {
-                              _textCtrl.text = unit; // Updates logic via listener
-                              _textFocus.unfocus();
-                            },
-                          );
-                        }).toList(),
+                        children:
+                            _dummyUnits
+                                .where(
+                                  (unit) => unit.toLowerCase().contains(
+                                    _textCtrl.text.toLowerCase(),
+                                  ),
+                                )
+                                .map((unit) {
+                                  return ActionChip(
+                                    label: Text(unit),
+                                    onPressed: () {
+                                      _textCtrl.text =
+                                          unit; // Updates logic via listener
+                                      _textFocus.unfocus();
+                                    },
+                                  );
+                                })
+                                .toList(),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -238,10 +275,10 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
                       errorText: _isDuplicate ? 'Duplicate Unit Code' : null,
                       suffixIcon: IconButton(
                         icon: const Icon(Icons.clear, color: Colors.grey),
-                         onPressed: () {
+                        onPressed: () {
                           _textCtrl.clear();
                           _textFocus.requestFocus();
-                        }
+                        },
                       ),
                     ),
                   ),
@@ -253,7 +290,9 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed:
-                          _textCtrl.text.trim().isEmpty || state is LotoSubmitting || _isDuplicate
+                          _textCtrl.text.trim().isEmpty ||
+                                  state is LotoSubmitting ||
+                                  _isDuplicate
                               ? null
                               : () async {
                                 print('🚀 BottomSheet submit button pressed');
@@ -276,8 +315,9 @@ class _CaptureBottomSheetState extends State<CaptureBottomSheet> {
                                   finalPath = await addWatermarkToImage(
                                     inputPath: state.photoPath,
                                     unitCode: _textCtrl.text.trim(),
-                                    nrp: 'NRP123456',
-                                    gps: '${state.lat.toStringAsFixed(5)}, ${state.lng.toStringAsFixed(5)}',
+                                    nrp: userNrp!,
+                                    gps:
+                                        '${state.lat.toStringAsFixed(5)}, ${state.lng.toStringAsFixed(5)}',
                                     timestamp: state.timestamp,
                                   );
                                   print(

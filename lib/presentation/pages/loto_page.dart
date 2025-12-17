@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:gardaloto/presentation/cubit/auth_cubit.dart';
+import 'package:gardaloto/presentation/cubit/auth_state.dart';
 import 'package:gardaloto/presentation/cubit/loto_cubit.dart';
 import 'package:gardaloto/presentation/cubit/loto_state.dart';
 import 'package:gardaloto/presentation/widget/capture_form_page.dart';
@@ -88,6 +90,10 @@ class _LotoPageState extends State<LotoPage> {
     manpowerCubit.syncAndLoad();
     storageCubit.syncAndLoad();
 
+    // Get current user for auto-fill
+    final authState = context.read<AuthCubit>().state;
+    final currentUser = authState is AuthAuthenticated ? authState.user : null;
+
     final session = await showDialog<LotoSession?>(
       context: context,
       barrierDismissible: false,
@@ -96,6 +102,7 @@ class _LotoPageState extends State<LotoPage> {
             initialMaster: master,
             manpowerCubit: manpowerCubit,
             storageCubit: storageCubit,
+            currentUser: currentUser,
           ),
     );
 

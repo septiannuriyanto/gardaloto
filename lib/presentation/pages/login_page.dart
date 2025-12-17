@@ -12,12 +12,12 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _emailCtrl = TextEditingController();
+  final _nrpCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
 
   @override
   void dispose() {
-    _emailCtrl.dispose();
+    _nrpCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
   }
@@ -55,9 +55,9 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 24),
 
                 TextField(
-                  controller: _emailCtrl,
+                  controller: _nrpCtrl,
                   decoration: const InputDecoration(
-                    labelText: "Email",
+                    labelText: "NRP",
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -84,7 +84,7 @@ class _LoginPageState extends State<LoginPage> {
                       child: ElevatedButton(
                         onPressed: () {
                           context.read<AuthCubit>().login(
-                            _emailCtrl.text.trim(),
+                            _nrpCtrl.text.trim(),
                             _passwordCtrl.text.trim(),
                           );
                         },
