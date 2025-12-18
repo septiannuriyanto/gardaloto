@@ -4,6 +4,7 @@ import 'package:gardaloto/presentation/cubit/auth_state.dart';
 import 'package:go_router/go_router.dart';
 import '../cubit/auth_cubit.dart';
 import 'login_page.dart';
+import 'package:gardaloto/presentation/widget/app_background.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -36,7 +37,13 @@ class AuthGate extends StatelessWidget {
           return const LoginPage();
         }
 
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return const Scaffold(
+          body: AppBackground(
+            child: Center(
+              child: CircularProgressIndicator(color: Colors.cyanAccent),
+            ),
+          ),
+        );
       },
     );
   }

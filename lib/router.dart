@@ -47,7 +47,19 @@ final router = GoRouter(
         GoRoute(
           path: 'capture',
           name: 'capture',
-          builder: (_, __) => const CaptureFormPage(),
+          builder: (context, state) {
+            // Check if a specific LotoCubit was passed (e.g. from Review Page)
+            final extra = state.extra as Map<String, dynamic>?;
+            final injectedCubit = extra?['cubit'] as LotoCubit?;
+
+            if (injectedCubit != null) {
+              return BlocProvider.value(
+                value: injectedCubit,
+                child: const CaptureFormPage(),
+              );
+            }
+            return const CaptureFormPage();
+          },
         ),
         GoRoute(
           path: 'review',

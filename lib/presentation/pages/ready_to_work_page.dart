@@ -8,7 +8,7 @@ class ReadyToWorkPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const Drawer(child: Sidebar()),
+      drawer: const Sidebar(),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gardaloto/domain/entities/loto_entity.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -19,6 +20,10 @@ import 'package:gardaloto/presentation/widget/sidebar.dart';
 import 'package:gardaloto/presentation/cubit/manpower_cubit.dart';
 import 'package:gardaloto/presentation/cubit/storage_cubit.dart';
 import 'package:gardaloto/presentation/widget/full_screen_gallery.dart';
+import 'package:gardaloto/presentation/widget/app_background.dart';
+import 'package:gardaloto/presentation/widget/glass_panel.dart';
+import 'package:gardaloto/presentation/widget/glass_fab.dart';
+import 'dart:ui';
 
 class LotoPage extends StatefulWidget {
   const LotoPage({super.key});
@@ -35,9 +40,18 @@ class _LotoPageState extends State<LotoPage> {
   }
 
   Future<void> _init() async {
-    // Load active session first to ensure we have the session context
-    // Force reload to clear any stale capturing state if we just navigated here
-    await context.read<LotoCubit>().loadActiveSession();
+    final cubit = context.read<LotoCubit>();
+
+    // Only load if we don't have a valid session in memory
+    // This optimization is crucial for Singleton LotoCubit to persist state across navigation
+    if (cubit.state is LotoLoaded &&
+        (cubit.state as LotoLoaded).session != null) {
+      print('✨ Session already loaded in memory, skipping disk reload');
+    } else {
+      // Load active session first to ensure we have the session context
+      await cubit.loadActiveSession();
+    }
+
     // Check for lost data (e.g. from camera) after session is loaded
     await _retrieveLostData();
   }
@@ -56,8 +70,8 @@ class _LotoPageState extends State<LotoPage> {
         final cubit = context.read<LotoCubit>();
         // Start capture with recovered image
         cubit.startCapture(photoPath: file.path);
-        // Navigate to capture page
-        context.go('/loto/capture');
+        // Navigate to capture page using push to preserve stack
+        context.push('/loto/capture');
       }
     } else {
       print('⚠️ Recovered data error: ${response.exception}');
@@ -293,9 +307,19 @@ class _LotoPageState extends State<LotoPage> {
         ),
       ],
       child: Scaffold(
-        drawer: const Drawer(child: Sidebar()),
+        extendBodyBehindAppBar: true,
+        drawer: const Sidebar(),
         appBar: AppBar(
-          title: const Text("LOTO"),
+          title: const Text("LOTO", style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.white),
+          flexibleSpace: ClipRRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(color: Colors.blue.shade900.withOpacity(0.2)),
+            ),
+          ),
           actions: [
             BlocBuilder<LotoCubit, LotoState>(
               builder: (context, state) {
@@ -306,25 +330,9 @@ class _LotoPageState extends State<LotoPage> {
 
                 if (isSessionActive && hasRecords) {
                   return IconButton(
-                    icon: const Icon(Icons.send),
+                    icon: const Icon(Icons.send, color: Colors.cyanAccent),
                     onPressed: () => _sendReport(context),
                     tooltip: 'Send Report',
-                  );
-                } else if (!isSessionActive) {
-                  return PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'new_session') {
-                        _showSessionDialog(context);
-                      }
-                    },
-                    itemBuilder: (BuildContext context) {
-                      return [
-                        const PopupMenuItem<String>(
-                          value: 'new_session',
-                          child: Text('New Session'),
-                        ),
-                      ];
-                    },
                   );
                 }
                 return const SizedBox.shrink();
@@ -332,202 +340,252 @@ class _LotoPageState extends State<LotoPage> {
             ),
           ],
         ),
-        body: BlocBuilder<LotoCubit, LotoState>(
-          builder: (context, state) {
-            if (state is LotoLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (state is LotoLoaded) {
-              final session = state.session;
-
-              // Lookup names from ManpowerCubit
-              String fuelmanDisplay = session?.fuelman ?? '-';
-              String operatorDisplay = session?.operatorName ?? '-';
-
-              final manpowerState = context.read<ManpowerCubit>().state;
-              if (manpowerState is ManpowerSynced) {
-                final fuelmanEntity =
-                    manpowerState.fuelmen
-                        .where((e) => e.nrp == session?.fuelman)
-                        .firstOrNull;
-                if (fuelmanEntity != null) {
-                  fuelmanDisplay = fuelmanEntity.nama ?? session!.fuelman;
-                }
-
-                final operatorEntity =
-                    manpowerState.operators
-                        .where((e) => e.nrp == session?.operatorName)
-                        .firstOrNull;
-                if (operatorEntity != null) {
-                  operatorDisplay =
-                      operatorEntity.nama ?? session!.operatorName;
-                }
+        body: AppBackground(
+          child: BlocBuilder<LotoCubit, LotoState>(
+            builder: (context, state) {
+              if (state is LotoLoading) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.cyanAccent),
+                );
               }
 
-              return Column(
-                children: [
-                  if (session != null)
-                    Flexible(
-                      flex: 0,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const Text(
-                                      'Session Info',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
+              LotoSession? session;
+              List<LotoEntity> records = [];
+
+              if (state is LotoLoaded) {
+                session = state.session;
+                records = state.records;
+              } else if (state is LotoCapturing) {
+                session = state.session;
+                records = state.records;
+              }
+
+              if (session != null) {
+                // Lookup names from ManpowerCubit
+
+                // Lookup names from ManpowerCubit
+                String fuelmanDisplay = session?.fuelman ?? '-';
+                String operatorDisplay = session?.operatorName ?? '-';
+
+                final manpowerState = context.read<ManpowerCubit>().state;
+                if (manpowerState is ManpowerSynced) {
+                  final fuelmanEntity =
+                      manpowerState.fuelmen
+                          .where((e) => e.nrp == session?.fuelman)
+                          .firstOrNull;
+                  if (fuelmanEntity != null) {
+                    fuelmanDisplay = fuelmanEntity.nama ?? session!.fuelman;
+                  }
+
+                  final operatorEntity =
+                      manpowerState.operators
+                          .where((e) => e.nrp == session?.operatorName)
+                          .firstOrNull;
+                  if (operatorEntity != null) {
+                    operatorDisplay =
+                        operatorEntity.nama ?? session!.operatorName;
+                  }
+                }
+
+                return Column(
+                  children: [
+                    if (session != null)
+                      Flexible(
+                        flex: 0,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: GlassPanel(
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        'Session Info',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
                                       ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.delete,
-                                        color: Colors.red,
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.delete,
+                                          color: Colors.redAccent,
+                                        ),
+                                        onPressed:
+                                            () => _confirmAndDeleteSession(
+                                              context,
+                                            ),
                                       ),
-                                      onPressed:
-                                          () =>
-                                              _confirmAndDeleteSession(context),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Fuelman: $fuelmanDisplay',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text('Fuelman: $fuelmanDisplay'),
-                                const SizedBox(height: 4),
-                                Text('Operator: $operatorDisplay'),
-                                const SizedBox(height: 4),
-                                Text('Warehouse: ${session.warehouseCode}'),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Nomor: ${session.nomor} • Shift: ${session.shift}',
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Tanggal: ${session.dateTime.toLocal().toString().split('.').first}',
-                                ),
-                              ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Operator: $operatorDisplay',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Warehouse: ${session.warehouseCode}',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Nomor: ${session.nomor} • Shift: ${session.shift}',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Tanggal: ${session.dateTime.toLocal().toString().split('.').first}',
+                                    style: const TextStyle(
+                                      color: Colors.white54,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  Flexible(
-                    flex: 1,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child:
-                          state.records.isEmpty
-                              ? const Center(child: Text('No records yet'))
-                              : ListView.builder(
-                                padding: const EdgeInsets.only(
-                                  top: 8,
-                                  bottom: 88,
-                                ),
-                                itemCount: state.records.length,
-                                itemBuilder:
-                                  (_, i) => LotoCard(
-                                    entity: state.records[i],
-                                    onImageTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder:
-                                              (context) => FullScreenGallery(
-                                                records: state.records,
-                                                initialIndex: i,
-                                              ),
-                                        ),
-                                      );
-                                    },
+                    Flexible(
+                      flex: 1,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child:
+                            records.isEmpty
+                                ? const Center(
+                                  child: Text(
+                                    'No records yet',
+                                    style: TextStyle(color: Colors.white54),
                                   ),
-                            ),
+                                )
+                                : ListView.builder(
+                                  padding: const EdgeInsets.only(
+                                    top: 8,
+                                    bottom: 88,
+                                  ),
+                                  itemCount: records.length,
+                                  itemBuilder:
+                                      (_, i) => LotoCard(
+                                        entity: records[i],
+                                        onImageTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (context) =>
+                                                      FullScreenGallery(
+                                                        records: records,
+                                                        initialIndex: i,
+                                                      ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                ),
+                      ),
                     ),
-                  ),
-                ],
-              );
-            }
+                  ],
+                );
+              }
 
-            return const SizedBox();
-          },
+              return const SizedBox();
+            },
+          ),
         ),
         floatingActionButton: BlocBuilder<LotoCubit, LotoState>(
           builder: (context, state) {
             final isSessionActive =
                 state is LotoLoaded && state.session != null;
-            final fabColor = isSessionActive ? null : Colors.grey;
 
+            // If NO session, show the "Add New Session" FAB
+            if (!isSessionActive) {
+              return GlassFAB(
+                heroTag: 'new-session-fab',
+                tooltip: 'New Session',
+                enabled: true,
+                onPressed: () => _showSessionDialog(context),
+                icon: const Icon(Icons.add),
+              );
+            }
+
+            // If Session EXISTS, show Camera and Gallery options
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                FloatingActionButton(
+                GlassFAB(
                   heroTag: 'gallery-fab',
                   mini: true,
-                  backgroundColor: fabColor,
                   tooltip: 'Choose from gallery',
-                  onPressed:
-                      !isSessionActive
-                          ? null
-                          : () async {
-                            final _picker = ImagePicker();
-                            final XFile? image = await _picker.pickImage(
-                              source: ImageSource.gallery,
-                            );
-                            if (image == null) return;
+                  enabled: true,
+                  onPressed: () async {
+                    final _picker = ImagePicker();
+                    final XFile? image = await _picker.pickImage(
+                      source: ImageSource.gallery,
+                    );
+                    if (image == null) return;
 
-                            if (!context.mounted) return;
-                            final cubit = context.read<LotoCubit>();
-                            cubit.startCapture(photoPath: image.path);
+                    if (!context.mounted) return;
+                    final cubit = context.read<LotoCubit>();
+                    cubit.startCapture(photoPath: image.path);
 
-                            // Navigate to capture form page
-                            context.go('/loto/capture');
-                          },
-                  child: const Icon(Icons.photo_library),
+                    // Navigate to capture form page
+                    context.push('/loto/capture');
+                  },
+                  icon: const Icon(Icons.photo_library),
                 ),
-                const SizedBox(height: 8),
-                FloatingActionButton(
+                const SizedBox(height: 16),
+                GlassFAB(
                   heroTag: 'camera-fab',
-                  backgroundColor: fabColor,
                   tooltip: 'Take photo',
-                  onPressed:
-                      !isSessionActive
-                          ? null
-                          : () async {
-                            try {
-                              final _picker = ImagePicker();
-                              final XFile? image = await _picker.pickImage(
-                                source: ImageSource.camera,
-                                preferredCameraDevice: CameraDevice.rear,
-                              );
-                              if (image == null) return;
+                  enabled: true,
+                  onPressed: () async {
+                    try {
+                      final _picker = ImagePicker();
+                      final XFile? image = await _picker.pickImage(
+                        source: ImageSource.camera,
+                        preferredCameraDevice: CameraDevice.rear,
+                      );
+                      if (image == null) return;
 
-                              if (!context.mounted) return;
-                              final cubit = context.read<LotoCubit>();
-                              cubit.startCapture(photoPath: image.path);
+                      if (!context.mounted) return;
+                      final cubit = context.read<LotoCubit>();
+                      cubit.startCapture(photoPath: image.path);
 
-                              // Navigate to capture form page
-                              context.go('/loto/capture');
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Failed to open camera: $e'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                  child: const Icon(Icons.camera_alt),
+                      // Navigate to capture form page
+                      context.push('/loto/capture');
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Failed to open camera: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.camera_alt),
                 ),
               ],
             );

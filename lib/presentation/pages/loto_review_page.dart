@@ -13,10 +13,14 @@ import 'package:gardaloto/presentation/cubit/manpower_cubit.dart';
 import 'package:gardaloto/presentation/cubit/storage_cubit.dart';
 import 'package:gardaloto/presentation/cubit/auth_cubit.dart';
 import 'package:gardaloto/presentation/cubit/auth_state.dart';
-import 'package:gardaloto/presentation/widget/capture_bottomsheet.dart';
 import 'package:gardaloto/presentation/widget/full_screen_gallery.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:photo_view/photo_view.dart';
+
+import 'package:gardaloto/presentation/widget/app_background.dart';
+import 'package:gardaloto/presentation/widget/glass_panel.dart';
+import 'package:gardaloto/presentation/widget/glass_fab.dart';
+import 'dart:ui';
+import 'package:gardaloto/presentation/widget/loading_dialog.dart';
 import 'package:shimmer/shimmer.dart';
 
 class LotoReviewPage extends StatelessWidget {
@@ -28,8 +32,8 @@ class LotoReviewPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(
-          create: (_) => sl<LotoCubit>()..loadReviewSession(session),
+        BlocProvider.value(
+          value: sl<LotoCubit>()..loadReviewSession(session),
         ),
         BlocProvider(create: (_) => sl<ManpowerCubit>()..syncAndLoad()),
         BlocProvider(create: (_) => sl<StorageCubit>()..syncAndLoad()),
@@ -51,47 +55,40 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _captureImage(BuildContext context, ImageSource source) async {
-    try {
-      final XFile? photo = await _picker.pickImage(
-        source: source,
-        imageQuality: 80,
-        preferredCameraDevice: CameraDevice.rear,
-      );
+    final image = await _picker.pickImage(
+      source: source,
+      preferredCameraDevice: CameraDevice.rear,
+    );
+    if (image == null) return;
 
-      if (photo != null && context.mounted) {
-        // Trigger capture with default location (0,0 for now)
-        context.read<LotoCubit>().startCapture(photoPath: photo.path);
+    if (!context.mounted) return;
 
-        // Capture local cubit before showing modal
-        final lotoCubit = context.read<LotoCubit>();
+    // Start capture state in the CURRENT loto cubit (which is scoped to this session)
+    final cubit = context.read<LotoCubit>();
+    cubit.startCapture(photoPath: image.path);
 
-        // Show bottom sheet directly - no navigation needed
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          barrierColor: Colors.black54,
-          builder:
-              (context) => BlocProvider.value(
-                value: lotoCubit,
-                child: const CaptureBottomSheet(),
-              ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error capturing image: $e')));
-      }
-    }
+    // Push to the unified CaptureFormPage
+    // Pass the cubit as extra so the router can provide it
+    context.pushNamed('capture', extra: {'cubit': cubit});
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('LOTO Review'),
+        title: const Text('LOTO Review', style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        flexibleSpace: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              color: Colors.blue.shade900.withValues(alpha: 0.2),
+            ),
+          ),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -101,12 +98,13 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
             final state = context.read<LotoCubit>().state;
 
             List<LotoEntity> records = [];
-            if (state is LotoLoaded)
+            if (state is LotoLoaded) {
               records = state.records;
-            else if (state is LotoUploadSuccess)
+            } else if (state is LotoUploadSuccess) {
               records = state.records;
-            else if (state is LotoCapturing)
+            } else if (state is LotoCapturing) {
               records = state.records;
+            }
 
             if (records.isNotEmpty) {
               rCount =
@@ -131,7 +129,7 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
                 );
                 if (hasPending) {
                   return IconButton(
-                    icon: const Icon(Icons.send, color: Colors.blue),
+                    icon: const Icon(Icons.send, color: Colors.cyanAccent),
                     onPressed: () {
                       context.read<LotoCubit>().uploadPendingRecords();
                     },
@@ -145,7 +143,7 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
       ),
       body: PopScope(
         canPop: false,
-        onPopInvoked: (didPop) async {
+        onPopInvokedWithResult: (didPop, result) async {
           if (didPop) return;
 
           // Calculate counts from current state
@@ -214,31 +212,22 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
                         value: context.read<LotoCubit>(),
                         child: BlocBuilder<LotoCubit, LotoState>(
                           builder: (context, state) {
-                            double? progress;
-                            String text = 'Uploading...';
+                            String? message = 'Uploading...';
+                            int? uploaded;
+                            int? total;
 
                             if (state is LotoUploading) {
-                              if (state.totalCount > 0) {
-                                progress =
-                                    state.uploadedCount / state.totalCount;
-                                text =
-                                    'Uploading ${state.uploadedCount}/${state.totalCount}';
+                              uploaded = state.uploadedCount;
+                              total = state.totalCount;
+                              if (total > 0) {
+                                message =
+                                    'Uploading...'; // Widget handles counts display
                               }
                             }
-
-                            return AlertDialog(
-                              content: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const CircularProgressIndicator(),
-                                  const SizedBox(height: 16),
-                                  Text(text),
-                                  if (progress != null) ...[
-                                    const SizedBox(height: 8),
-                                    LinearProgressIndicator(value: progress),
-                                  ],
-                                ],
-                              ),
+                            return LoadingDialog(
+                              message: message,
+                              uploadedCount: uploaded,
+                              totalCount: total,
                             );
                           },
                         ),
@@ -307,7 +296,7 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
                           .where((e) => e.nrp == session!.fuelman)
                           .firstOrNull;
                   if (fuelmanEntity != null) {
-                    fuelmanDisplay = fuelmanEntity.nama ?? session!.fuelman;
+                    fuelmanDisplay = fuelmanEntity.nama ?? session.fuelman;
                   }
 
                   final operatorEntity =
@@ -316,512 +305,527 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
                           .firstOrNull;
                   if (operatorEntity != null) {
                     operatorDisplay =
-                        operatorEntity.nama ?? session!.operatorName;
+                        operatorEntity.nama ?? session.operatorName;
                   }
                 }
 
-                return Column(
-                  children: [
-                    Flexible(
-                      flex: 0,
-                      child: Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey.shade200),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+                return AppBackground(
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.only(
+                          top: 20,
+                          left: 16,
+                          right: 16,
+                          bottom: 16,
                         ),
-                        child: Column(
-                          children: [
-                            // Header: Title & Number
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Text(
-                                    'Session Details',
-                                    style: TextStyle(
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: -0.5,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(
-                                        0xFFF2F2F7,
-                                      ), // iOS System Grey 6
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      session!.nomor,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontFamily: 'monospace',
-                                        fontWeight: FontWeight.w500,
-                                        color: Color(0xFF8E8E93),
+                        child: GlassPanel(
+                          child: Column(
+                            children: [
+                              // Header: Title & Number
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  16,
+                                  16,
+                                  8,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      'Session Details',
+                                      style: TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: -0.5,
+                                        color: Colors.white,
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white24,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        session.nomor,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontFamily: 'monospace',
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const Divider(height: 1),
+                              Divider(height: 1, color: Colors.white24),
 
-                            // Content
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                children: [
-                                  // Warehouse & Date & Shift
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        flex: 2,
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.warehouse_outlined,
-                                                  size: 12,
-                                                  color: Colors.grey[500],
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  'WAREHOUSE',
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    color: Colors.grey[500],
-                                                    fontWeight: FontWeight.bold,
-                                                    letterSpacing: 0.5,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 4),
-
-                                            // Value with Unit ID
-                                            () {
-                                              String? unitId;
-                                              final storageState =
-                                                  context
-                                                      .read<StorageCubit>()
-                                                      .state;
-                                              if (storageState
-                                                  is StorageSynced) {
-                                                unitId =
-                                                    storageState.warehouses
-                                                        .where(
-                                                          (e) =>
-                                                              e.warehouseId ==
-                                                              session!
-                                                                  .warehouseCode,
-                                                        )
-                                                        .firstOrNull
-                                                        ?.unitId;
-                                              }
-
-                                              return RichText(
-                                                text: TextSpan(
-                                                  text: session!.warehouseCode,
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight:
-                                                        FontWeight.normal,
-                                                    color: Colors.black87,
-                                                  ),
-                                                  children: [
-                                                    if (unitId != null)
-                                                      TextSpan(
-                                                        text: '  $unitId',
-                                                        style: const TextStyle(
-                                                          fontSize: 12,
-                                                          color: Color(
-                                                            0xFF8E8E93,
-                                                          ), // iOS System Grey
-                                                        ),
-                                                      ),
-                                                  ],
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              );
-                                            }(),
-                                          ],
-                                        ),
-                                      ),
-                                      Expanded(
-                                        flex: 2,
-                                        child: _buildInfoItem(
-                                          'DATE',
-                                          session!.dateTime
-                                              .toLocal()
-                                              .toString()
-                                              .split(' ')[0],
-                                          icon: Icons.calendar_today_outlined,
-                                        ),
-                                      ),
-                                      // Shift Icon
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            'SHIFT',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: Colors.grey[500],
-                                              fontWeight: FontWeight.bold,
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          session!.shift == 2
-                                              ? const Icon(
-                                                Icons.nightlight_round,
-                                                color: Colors.black,
-                                                size: 20,
-                                              )
-                                              : const Icon(
-                                                Icons.wb_sunny_rounded,
-                                                color: Colors.amber,
-                                                size: 20,
-                                              ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 20),
-
-                                  // Personnel
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF9F9F9),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
+                              // Content
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  children: [
+                                    // Warehouse & Date & Shift
+                                    Row(
                                       children: [
                                         Expanded(
-                                          child: _buildInfoItem(
-                                            'FUELMAN',
-                                            fuelmanDisplay,
-                                            isName: true,
-                                          ),
-                                        ),
-                                        Container(
-                                          width: 1,
-                                          height: 30,
-                                          color: Colors.grey.shade300,
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: _buildInfoItem(
-                                            'OPERATOR',
-                                            operatorDisplay,
-                                            isName: true,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-
-                                  // Status Badges
-
-                                  // Status Badges
-                                  () {
-                                    final rCount =
-                                        records
-                                            .where(
-                                              (r) => r.photoPath.startsWith(
-                                                'http',
+                                          flex: 2,
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.warehouse_outlined,
+                                                    size: 12,
+                                                    color: Colors.white54,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'WAREHOUSE',
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      color: Colors.white54,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      letterSpacing: 0.5,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                            )
-                                            .length;
-                                    final lCount =
-                                        records
-                                            .where(
-                                              (r) =>
-                                                  !r.photoPath.startsWith(
-                                                    'http',
-                                                  ),
-                                            )
-                                            .length;
+                                              const SizedBox(height: 4),
 
-                                    return Row(
-                                      children: [
-                                        // Remote Status
-                                        if (rCount > 0) ...[
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: const Color(
-                                                0xFFE8F5E9,
-                                              ), // Light Green
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                const Icon(
-                                                  Icons.check_circle,
-                                                  size: 14,
-                                                  color: Color(0xFF34C759),
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  '$rCount Uploaded',
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: Color(0xFF34C759),
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                        ],
+                                              // Value with Unit ID
+                                              () {
+                                                String? unitId;
+                                                final storageState =
+                                                    context
+                                                        .read<StorageCubit>()
+                                                        .state;
+                                                if (storageState
+                                                    is StorageSynced) {
+                                                  unitId =
+                                                      storageState.warehouses
+                                                          .where(
+                                                            (e) =>
+                                                                e.warehouseId ==
+                                                                session!
+                                                                    .warehouseCode,
+                                                          )
+                                                          .firstOrNull
+                                                          ?.unitId;
+                                                }
 
-                                        // Local Status
-                                        if (lCount > 0) ...[
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: const Color(
-                                                0xFFFFF3E0,
-                                              ), // Light Orange
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                const Icon(
-                                                  Icons.pending,
-                                                  size: 14,
-                                                  color: Color(0xFFFF9500),
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  '$lCount Pending',
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: Color(0xFFFF9500),
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-
-                                        if (rCount == 0 && lCount == 0)
-                                          const Text(
-                                            'No records yet',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Color(0xFFC7C7CC),
-                                              fontStyle: FontStyle.italic,
-                                            ),
-                                          ),
-                                      ],
-                                    );
-                                  }(),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Flexible(
-                      flex: 1,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child:
-                            records.isEmpty
-                                ? const Center(child: Text('No records found'))
-                                : GridView.builder(
-                                  padding: const EdgeInsets.only(
-                                    top: 8,
-                                    bottom: 88,
-                                  ),
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 3,
-                                        crossAxisSpacing: 4,
-                                        mainAxisSpacing: 4,
-                                      ),
-                                  itemCount: records.length,
-                                  itemBuilder: (context, index) {
-                                    final record = records[index];
-                                    final isLocal =
-                                        !record.photoPath.startsWith('http');
-
-                                    return GestureDetector(
-                                      onTap: () {
-                                        // Open zoomable image gallery
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder:
-                                                (context) => FullScreenGallery(
-                                                  records: records,
-                                                  initialIndex: index,
-                                                ),
-                                          ),
-                                        );
-                                      },
-                                      child: Hero(
-                                        tag: record.photoPath,
-                                        child: Stack(
-                                          fit: StackFit.expand,
-                                          children: [
-                                            isLocal
-                                                ? Image.file(
-                                                  File(record.photoPath),
-                                                  fit: BoxFit.cover,
-                                                )
-                                                : CachedNetworkImage(
-                                                  imageUrl: record.photoPath,
-                                                  fit: BoxFit.cover,
-                                                  placeholder:
-                                                      (
-                                                        context,
-                                                        url,
-                                                      ) => Shimmer.fromColors(
-                                                        baseColor:
-                                                            Colors.grey[300]!,
-                                                        highlightColor:
-                                                            Colors.grey[100]!,
-                                                        child: Container(
-                                                          color: Colors.white,
-                                                        ),
-                                                      ),
-                                                  errorWidget:
-                                                      (context, url, error) =>
-                                                          const Icon(
-                                                            Icons.error,
+                                                return RichText(
+                                                  text: TextSpan(
+                                                    text:
+                                                        session!.warehouseCode,
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.normal,
+                                                      color: Colors.white,
+                                                    ),
+                                                    children: [
+                                                      if (unitId != null)
+                                                        TextSpan(
+                                                          text: '  $unitId',
+                                                          style: const TextStyle(
+                                                            fontSize: 12,
+                                                            color:
+                                                                Colors.white54,
                                                           ),
-                                                ),
-                                            Positioned(
-                                              bottom: 0,
-                                              left: 0,
-                                              right: 0,
-                                              child: Container(
-                                                color: Colors.black54,
-                                                padding: const EdgeInsets.all(
-                                                  2,
-                                                ),
-                                                child: Text(
-                                                  record.codeNumber,
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 10,
+                                                        ),
+                                                    ],
                                                   ),
-                                                  textAlign: TextAlign.center,
                                                   maxLines: 1,
                                                   overflow:
                                                       TextOverflow.ellipsis,
-                                                ),
+                                                );
+                                              }(),
+                                            ],
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 2,
+                                          child: _buildInfoItem(
+                                            'DATE',
+                                            session.dateTime
+                                                .toLocal()
+                                                .toString()
+                                                .split(' ')[0],
+                                            icon: Icons.calendar_today_outlined,
+                                          ),
+                                        ),
+                                        // Shift Icon
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              'SHIFT',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: Colors.white54,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 0.5,
                                               ),
                                             ),
-                                            if (isLocal) ...[
-                                              const Positioned(
-                                                top: 4,
-                                                right: 4,
-                                                child: Icon(
-                                                  Icons.pending,
-                                                  color: Colors.orange,
-                                                  size: 16,
+                                            const SizedBox(height: 4),
+                                            session.shift == 2
+                                                ? const Icon(
+                                                  Icons.nightlight_round,
+                                                  color: Colors.white,
+                                                  size: 20,
+                                                )
+                                                : const Icon(
+                                                  Icons.wb_sunny_rounded,
+                                                  color: Colors.amber,
+                                                  size: 20,
+                                                ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 20),
+
+                                    // Personnel
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white10,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: _buildInfoItem(
+                                              'FUELMAN',
+                                              fuelmanDisplay,
+                                              isName: true,
+                                            ),
+                                          ),
+                                          Container(
+                                            width: 1,
+                                            height: 30,
+                                            color: Colors.white24,
+                                          ),
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: _buildInfoItem(
+                                              'OPERATOR',
+                                              operatorDisplay,
+                                              isName: true,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+
+                                    // Status Badges
+
+                                    // Status Badges
+                                    () {
+                                      final rCount =
+                                          records
+                                              .where(
+                                                (r) => r.photoPath.startsWith(
+                                                  'http',
+                                                ),
+                                              )
+                                              .length;
+                                      final lCount =
+                                          records
+                                              .where(
+                                                (r) =>
+                                                    !r.photoPath.startsWith(
+                                                      'http',
+                                                    ),
+                                              )
+                                              .length;
+
+                                      return Row(
+                                        children: [
+                                          // Remote Status
+                                          if (rCount > 0) ...[
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.green.withValues(
+                                                  alpha: 0.2,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color: Colors.green
+                                                      .withValues(alpha: 0.5),
                                                 ),
                                               ),
-                                              Positioned(
-                                                top: -8,
-                                                left: -8,
-                                                child: GestureDetector(
-                                                  onTap: () {
-                                                    context
-                                                        .read<LotoCubit>()
-                                                        .delete(record);
-                                                  },
-                                                  child: Container(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                          8,
-                                                        ), // Hit target padding
-                                                    child: Container(
-                                                      decoration:
-                                                          const BoxDecoration(
-                                                            color: Colors.red,
-                                                            shape:
-                                                                BoxShape.circle,
-                                                            boxShadow: [
-                                                              BoxShadow(
-                                                                color:
-                                                                    Colors
-                                                                        .black26,
-                                                                blurRadius: 2,
-                                                                offset: Offset(
-                                                                  0,
-                                                                  1,
-                                                                ),
-                                                              ),
-                                                            ],
+                                              child: Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.check_circle,
+                                                    size: 14,
+                                                    color: Colors.greenAccent,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    '$rCount Uploaded',
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color: Colors.greenAccent,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                          ],
+
+                                          // Local Status
+                                          if (lCount > 0) ...[
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.orange.withValues(
+                                                  alpha: 0.2,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color: Colors.orange
+                                                      .withValues(alpha: 0.5),
+                                                ),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.pending,
+                                                    size: 14,
+                                                    color: Colors.orangeAccent,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    '$lCount Pending',
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color:
+                                                          Colors.orangeAccent,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+
+                                          if (rCount == 0 && lCount == 0)
+                                            const Text(
+                                              'No records yet',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.white54,
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                            ),
+                                        ],
+                                      );
+                                    }(),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child:
+                              records.isEmpty
+                                  ? const Center(
+                                    child: Text('No records found'),
+                                  )
+                                  : GridView.builder(
+                                    padding: const EdgeInsets.only(
+                                      top: 8,
+                                      bottom: 88,
+                                    ),
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 3,
+                                          crossAxisSpacing: 4,
+                                          mainAxisSpacing: 4,
+                                        ),
+                                    itemCount: records.length,
+                                    itemBuilder: (context, index) {
+                                      final record = records[index];
+                                      final isLocal =
+                                          !record.photoPath.startsWith('http');
+
+                                      return GestureDetector(
+                                        onTap: () {
+                                          // Open zoomable image gallery
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (context) =>
+                                                      FullScreenGallery(
+                                                        records: records,
+                                                        initialIndex: index,
+                                                      ),
+                                            ),
+                                          );
+                                        },
+                                        child: Hero(
+                                          tag: record.photoPath,
+                                          child: Stack(
+                                            fit: StackFit.expand,
+                                            children: [
+                                              isLocal
+                                                  ? Image.file(
+                                                    File(record.photoPath),
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                  : CachedNetworkImage(
+                                                    imageUrl: record.photoPath,
+                                                    fit: BoxFit.cover,
+                                                    placeholder:
+                                                        (
+                                                          context,
+                                                          url,
+                                                        ) => Shimmer.fromColors(
+                                                          baseColor:
+                                                              Colors.grey[300]!,
+                                                          highlightColor:
+                                                              Colors.grey[100]!,
+                                                          child: Container(
+                                                            color: Colors.white,
                                                           ),
-                                                      child: const Icon(
-                                                        Icons.close_rounded,
-                                                        size: 16,
-                                                        color: Colors.white,
+                                                        ),
+                                                    errorWidget:
+                                                        (context, url, error) =>
+                                                            const Icon(
+                                                              Icons.error,
+                                                            ),
+                                                  ),
+                                              Positioned(
+                                                bottom: 0,
+                                                left: 0,
+                                                right: 0,
+                                                child: Container(
+                                                  color: Colors.black54,
+                                                  padding: const EdgeInsets.all(
+                                                    2,
+                                                  ),
+                                                  child: Text(
+                                                    record.codeNumber,
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 10,
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ),
+                                              if (isLocal) ...[
+                                                const Positioned(
+                                                  top: 4,
+                                                  right: 4,
+                                                  child: Icon(
+                                                    Icons.pending,
+                                                    color: Colors.orange,
+                                                    size: 16,
+                                                  ),
+                                                ),
+                                                Positioned(
+                                                  top: -8,
+                                                  left: -8,
+                                                  child: GestureDetector(
+                                                    onTap: () {
+                                                      context
+                                                          .read<LotoCubit>()
+                                                          .delete(record);
+                                                    },
+                                                    child: Container(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                            8,
+                                                          ), // Hit target padding
+                                                      child: Container(
+                                                        decoration:
+                                                            const BoxDecoration(
+                                                              color: Colors.red,
+                                                              shape:
+                                                                  BoxShape
+                                                                      .circle,
+                                                              boxShadow: [
+                                                                BoxShadow(
+                                                                  color:
+                                                                      Colors
+                                                                          .black26,
+                                                                  blurRadius: 2,
+                                                                  offset:
+                                                                      Offset(
+                                                                        0,
+                                                                        1,
+                                                                      ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                        child: const Icon(
+                                                          Icons.close_rounded,
+                                                          size: 16,
+                                                          color: Colors.white,
+                                                        ),
                                                       ),
                                                     ),
                                                   ),
                                                 ),
-                                              ),
-                                            ] else
-                                              const Positioned(
-                                                top: 4,
-                                                right: 4,
-                                                child: Icon(
-                                                  Icons.check_circle,
-                                                  color: Colors.green,
-                                                  size: 16,
+                                              ] else
+                                                const Positioned(
+                                                  top: 4,
+                                                  right: 4,
+                                                  child: Icon(
+                                                    Icons.check_circle,
+                                                    color: Colors.green,
+                                                    size: 16,
+                                                  ),
                                                 ),
-                                              ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                  },
-                                ),
+                                      );
+                                    },
+                                  ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 );
               },
             );
@@ -830,36 +834,49 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
       ),
       floatingActionButton: BlocBuilder<AuthCubit, AuthState>(
         builder: (context, authState) {
-          bool canEdit = false;
+          bool isVisible = false;
+          bool isEnabled = false;
+
           if (authState is AuthAuthenticated) {
             final user = authState.user;
-            final allowedPos = [0, 1, 2, 3, 5];
-            final isAllowedPos = allowedPos.contains(user.position);
-            
-            // Allow if user is fuelman OR operator
-            // AND user has allowed position
-            final isOwner =
-                user.nrp == widget.session.fuelman ||
-                user.nrp == widget.session.operatorName;
-            
-            canEdit = isAllowedPos && isOwner;
+            final pos = user.position;
+
+            if ([0, 1, 2, 3].contains(pos)) {
+              // Full Access
+              isVisible = true;
+              isEnabled = true;
+            } else if (pos == 5) {
+              // Role 5: Visible but conditional enable
+              isVisible = true;
+              // Enabled ONLY if user is the Fuelman (LOTO is for fuelman reporting)
+              final isFuelman = user.nrp == widget.session.fuelman;
+              isEnabled = isFuelman;
+            } else {
+              // Others: Hide
+              isVisible = false;
+              isEnabled = false;
+            }
           }
+
+          if (!isVisible) return const SizedBox.shrink();
 
           return Column(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              FloatingActionButton(
+              GlassFAB(
                 heroTag: 'camera',
-                backgroundColor: canEdit ? null : Colors.grey,
-                onPressed: canEdit ? () => _captureImage(context, ImageSource.camera) : null,
-                child: const Icon(Icons.camera_alt),
+                enabled: isEnabled,
+                onPressed: () => _captureImage(context, ImageSource.camera),
+                icon: const Icon(Icons.camera_alt),
+                tooltip: 'Take Photo',
               ),
               const SizedBox(height: 16),
-              FloatingActionButton(
+              GlassFAB(
                 heroTag: 'gallery',
-                backgroundColor: canEdit ? null : Colors.grey,
-                onPressed: canEdit ? () => _captureImage(context, ImageSource.gallery) : null,
-                child: const Icon(Icons.photo_library),
+                enabled: isEnabled,
+                onPressed: () => _captureImage(context, ImageSource.gallery),
+                icon: const Icon(Icons.photo_library),
+                tooltip: 'Gallery',
               ),
             ],
           );
@@ -871,8 +888,8 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
   Widget _buildInfoItem(
     String label,
     String value, {
-    IconData? icon,
     bool isName = false,
+    IconData? icon,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -880,14 +897,14 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
         Row(
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 12, color: Colors.grey[500]),
+              Icon(icon, size: 12, color: Colors.white54),
               const SizedBox(width: 4),
             ],
             Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 10,
-                color: Colors.grey[500],
+                color: Colors.white54,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
               ),
@@ -900,7 +917,7 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
           style: TextStyle(
             fontSize: isName ? 15 : 14,
             fontWeight: isName ? FontWeight.w600 : FontWeight.normal,
-            color: Colors.black87,
+            color: Colors.white,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -910,40 +927,41 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
   }
 
   Widget _buildSkeletonLoader() {
-    return Padding(
-      padding: const EdgeInsets.all(12.0),
-      child: Column(
-        children: [
-          Shimmer.fromColors(
-            baseColor: Colors.grey[300]!,
-            highlightColor: Colors.grey[100]!,
-            child: Container(
-              height: 150,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+    return AppBackground(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 80, left: 16, right: 16, bottom: 16),
+        child: Column(
+          children: [
+            Shimmer.fromColors(
+              baseColor: Colors.white.withOpacity(0.1),
+              highlightColor: Colors.white.withOpacity(0.05),
+              child: Container(
+                height: 150,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 4,
-                mainAxisSpacing: 4,
+            const SizedBox(height: 16),
+            Expanded(
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 4,
+                  mainAxisSpacing: 4,
+                ),
+                itemCount: 12,
+                itemBuilder: (_, __) => Shimmer.fromColors(
+                  baseColor: Colors.white.withOpacity(0.1),
+                  highlightColor: Colors.white.withOpacity(0.05),
+                  child: Container(color: Colors.white.withOpacity(0.1)),
+                ),
               ),
-              itemCount: 12,
-              itemBuilder:
-                  (_, __) => Shimmer.fromColors(
-                    baseColor: Colors.grey[300]!,
-                    highlightColor: Colors.grey[100]!,
-                    child: Container(color: Colors.white),
-                  ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

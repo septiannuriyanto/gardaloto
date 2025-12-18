@@ -99,14 +99,14 @@ Future<String> addWatermarkToImage({
         ..shader = ui.Gradient.linear(
           ui.Offset(0, height - gradientHeight),
           ui.Offset(0, height),
-          [Colors.transparent, Colors.black.withOpacity(0.9)],
+          [Colors.transparent, Colors.black.withValues(alpha: 0.9)],
         );
   canvas.drawRect(gradientRect, gradientPaint);
 
   // 3. Prepare Text Painters
 
   // Helper to build paragraph
-  ui.Paragraph buildText(String text, double fontSize, {bool isBold = false}) {
+  ui.Paragraph buildText(String text, double fontSize, {bool isBold = false, Color? titleColor}) {
     final builder = ui.ParagraphBuilder(
       ui.ParagraphStyle(
         textAlign: ui.TextAlign.left,
@@ -116,13 +116,13 @@ Future<String> addWatermarkToImage({
         ellipsis: '...',
       ),
     );
-    builder.pushStyle(ui.TextStyle(color: Colors.white));
+    builder.pushStyle(ui.TextStyle(color: titleColor ?? Colors.white));
     builder.addText(text);
     return builder.build();
   }
 
-  // Unit Code (Left Column)
-  final unitPara = buildText(unitCode, bigFontSize, isBold: true);
+  // Unit Code (Left Column) - AMBER color as per PhotoOverlay
+  final unitPara = buildText(unitCode, bigFontSize, isBold: true, titleColor: Colors.amber);
   unitPara.layout(
     ui.ParagraphConstraints(width: width * 0.5),
   ); // Take half width
@@ -162,7 +162,7 @@ Future<String> addWatermarkToImage({
   final dividerX = sidePadding + unitPara.maxIntrinsicWidth + (width * 0.04);
   final dividerHeight =
       detailsHeight > unitPara.height ? detailsHeight : unitPara.height;
-  final dividerPaint = ui.Paint()..color = Colors.white.withOpacity(0.7);
+  final dividerPaint = ui.Paint()..color = Colors.white.withValues(alpha: 0.7);
   // canvas.drawRect(
   //   ui.Rect.fromLTWH(dividerX, bottomAnchor - dividerHeight, width * 0.002, dividerHeight),
   //   dividerPaint,
@@ -190,7 +190,16 @@ Future<String> addWatermarkToImage({
 
   canvas.drawParagraph(nrpPara, ui.Offset(detailsX, currentY));
 
-  // 5. Save
+  // 5. Draw "Garda LOTO" Branding (Top Right)
+  final brandPara = buildText("Garda LOTO", smallFontSize, isBold: false);
+  brandPara.layout(ui.ParagraphConstraints(width: width * 0.3));
+  
+  canvas.drawParagraph(
+    brandPara,
+    ui.Offset(width - sidePadding - brandPara.maxIntrinsicWidth, height * 0.05), // Top Right padding
+  );
+
+  // 6. Save
   final picture = recorder.endRecording();
   final img = await picture.toImage(width.toInt(), height.toInt());
   final byteData = await img.toByteData(format: ui.ImageByteFormat.png);

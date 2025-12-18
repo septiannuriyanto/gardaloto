@@ -52,15 +52,17 @@ class PhotoOverlay extends StatelessWidget {
           left: 0,
           right: 0,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            padding: const EdgeInsets.fromLTRB(
+              16,
+              96,
+              16,
+              24,
+            ), // Increased top padding for taller vignette
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withOpacity(0.9),
-                ],
+                colors: [Colors.transparent, Colors.black.withOpacity(0.9)],
               ),
             ),
             child: Row(
@@ -68,22 +70,25 @@ class PhotoOverlay extends StatelessWidget {
               children: [
                 // Column 1: Big Unit Code
                 Expanded(
-                  child: Text(
-                    code ?? "-",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      code ?? "-",
+                      style: const TextStyle(
+                        color: Colors.amber, // Amber color requested
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 16),
                 // Vertical Divider
                 Container(
-                  width: 1, 
-                  height: 50, 
-                  color: Colors.white.withOpacity(0.7)
+                  width: 1,
+                  height: 50,
+                  color: Colors.white.withOpacity(0.7),
                 ),
                 const SizedBox(width: 16),
                 // Column 2: Details
@@ -96,7 +101,7 @@ class PhotoOverlay extends StatelessWidget {
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
-                        fontWeight: FontWeight.w500
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -105,7 +110,7 @@ class PhotoOverlay extends StatelessWidget {
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
-                        fontWeight: FontWeight.w500
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -114,10 +119,29 @@ class PhotoOverlay extends StatelessWidget {
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
-                        fontWeight: FontWeight.w500
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        Positioned(
+          top: 16, // Padding from top
+          right: 16, // Padding from right
+          child: Text(
+            "Garda LOTO",
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w200,
+              fontSize: 12,
+              shadows: [
+                Shadow(
+                  offset: Offset(1, 1),
+                  blurRadius: 3,
+                  color: Colors.black.withOpacity(0.5),
                 ),
               ],
             ),

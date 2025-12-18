@@ -45,10 +45,15 @@ abstract class LotoRepository {
   /// Fetch local records for a specific session
   Future<List<LotoEntity>> getLocalSessionRecords(String sessionCode);
 
-  /// Append new records to an existing session
   Future<void> appendSessionRecords(
     LotoSession session,
     List<LotoEntity> records, {
     void Function(int count, int total)? onProgress,
   });
+
+  /// Save last known location for fallback
+  Future<void> saveLastKnownLocation(double lat, double lng);
+
+  /// Get last known location
+  Future<(double, double)?> getLastKnownLocation();
 }

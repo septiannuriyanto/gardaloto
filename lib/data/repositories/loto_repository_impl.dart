@@ -346,4 +346,23 @@ class LotoRepositoryImpl implements LotoRepository {
       rethrow;
     }
   }
+
+
+  @override
+  Future<void> saveLastKnownLocation(double lat, double lng) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('last_known_lat', lat);
+    await prefs.setDouble('last_known_lng', lng);
+  }
+
+  @override
+  Future<(double, double)?> getLastKnownLocation() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lat = prefs.getDouble('last_known_lat');
+    final lng = prefs.getDouble('last_known_lng');
+    if (lat != null && lng != null) {
+      return (lat, lng);
+    }
+    return null;
+  }
 }

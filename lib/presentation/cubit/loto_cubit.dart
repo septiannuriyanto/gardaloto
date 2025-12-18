@@ -243,6 +243,22 @@ class LotoCubit extends Cubit<LotoState> {
     }
   }
 
+  void cancelCapture() {
+    print('↩️ cancelCapture called');
+    if (state is LotoCapturing) {
+      final currentState = state as LotoCapturing;
+      // Restore previous session and records
+      emit(
+        LotoLoaded(
+          currentState.records,
+          session: currentState.session,
+          isPendingOperation: false,
+        ),
+      );
+      print('✅ State restored to LotoLoaded');
+    }
+  }
+
   Future<void> submit(LotoEntity entity) async {
     // Show loading state first
     emit(LotoSubmitting());

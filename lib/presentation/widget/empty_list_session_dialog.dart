@@ -5,10 +5,11 @@ import 'package:gardaloto/domain/entities/manpower_entity.dart';
 import 'package:gardaloto/domain/entities/storage_entity.dart';
 import 'package:gardaloto/domain/entities/user_entity.dart';
 
-/// Dialog shown when the list is empty to collect session/header info.
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gardaloto/presentation/cubit/manpower_cubit.dart';
 import 'package:gardaloto/presentation/cubit/storage_cubit.dart';
+
+import 'package:gardaloto/presentation/widget/glass_panel.dart';
 
 /// Dialog shown when the list is empty to collect session/header info.
 class EmptyListSessionDialog extends StatefulWidget {
@@ -41,7 +42,9 @@ class _EmptyListSessionDialogState extends State<EmptyListSessionDialog> {
     super.initState();
     // initialize to current time in GMT+8 for display
     final nowUtc = DateTime.now().toUtc();
-    _dateTime = nowUtc.add(const Duration(hours: 8)); // Keep as UTC+8 but represented as DateTime
+    _dateTime = nowUtc.add(
+      const Duration(hours: 8),
+    ); // Keep as UTC+8 but represented as DateTime
 
     if (widget.initialMaster != null) {
       _fuelman = widget.initialMaster!.fuelman;
@@ -114,293 +117,363 @@ class _EmptyListSessionDialogState extends State<EmptyListSessionDialog> {
   @override
   Widget build(BuildContext context) {
     final currentShift = _computeShift(_dateTime);
-    
+
     return BlocProvider.value(
       value: widget.manpowerCubit,
-      child: AlertDialog(
-        title: const Text('Session details'),
-        content: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: _pickDate,
-                        child: InputDecorator(
-                          decoration: const InputDecoration(labelText: 'Tanggal'),
-                          child: Text(
-                            '${_dateTime.toString().split('.').first}',
+      child: Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: GlassPanel(
+          padding: const EdgeInsets.all(24),
+          // Use white glass for the dialog
+          color: Colors.white.withValues(alpha: 0.1),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Session details',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color:
+                          Colors
+                              .white, // Keep Title White as it sits on top of the dark app background effectively
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: _pickDate,
+                          child: InputDecorator(
+                            decoration: const InputDecoration(
+                              labelText: 'Tanggal',
+                              labelStyle: TextStyle(color: Colors.white70),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.white30),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.cyanAccent,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              _dateTime.toString().split('.').first,
+                              style: const TextStyle(color: Colors.white),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: _pickTime,
-                      icon: const Icon(Icons.access_time),
-                    ),
-                  ],
-                ),
-
-                // Shift (read-only)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Row(
-                    children: [
-                      const Text('Shift:'),
                       const SizedBox(width: 8),
-                      Chip(label: Text('$currentShift')),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          currentShift == 1
-                              ? 'Shift 1 = 06:00-18:00 (GMT+8)'
-                              : 'Shift 2 = 18:00-06:00 (GMT+8)',
+                      IconButton(
+                        onPressed: _pickTime,
+                        icon: const Icon(
+                          Icons.access_time,
+                          color: Colors.cyanAccent,
                         ),
                       ),
                     ],
                   ),
-                ),
 
-                BlocBuilder<ManpowerCubit, ManpowerState>(
-                  builder: (context, state) {
-                    List<DropdownMenuItem<String>> fuelmanItems = [];
-                    List<DropdownMenuItem<String>> operatorItems = [];
+                  // Shift
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0),
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Shift',
+                        labelStyle: TextStyle(color: Colors.white70),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white30),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.cyanAccent),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Text(
+                            '$currentShift',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              currentShift == 1
+                                  ? '(06:00-18:00)'
+                                  : '(18:00-06:00)',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
 
-                    if (state is ManpowerSynced) {
-                      // Sort by name
-                      final fuelmen = List<ManpowerEntity>.from(state.fuelmen)
-                        ..sort(
+                  BlocBuilder<ManpowerCubit, ManpowerState>(
+                    builder: (context, state) {
+                      List<DropdownMenuItem<String>> fuelmanItems = [];
+                      List<DropdownMenuItem<String>> operatorItems = [];
+
+                      if (state is ManpowerSynced) {
+                        // Sort by name
+                        final fuelmen = List<ManpowerEntity>.from(state.fuelmen)
+                          ..sort(
+                            (a, b) => (a.nama ?? '').compareTo(b.nama ?? ''),
+                          );
+                        final operators = List<ManpowerEntity>.from(
+                          state.operators,
+                        )..sort(
                           (a, b) => (a.nama ?? '').compareTo(b.nama ?? ''),
                         );
-                      final operators = List<ManpowerEntity>.from(state.operators)
-                        ..sort(
-                          (a, b) => (a.nama ?? '').compareTo(b.nama ?? ''),
-                        );
 
-                      fuelmanItems =
-                          fuelmen.map((e) {
-                            return DropdownMenuItem(
-                              value: e.nrp,
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      e.nama ?? '-',
-                                      style: const TextStyle(fontSize: 13),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    e.nrp,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList();
-
-                      operatorItems =
-                          operators.map((e) {
-                            return DropdownMenuItem(
-                              value: e.nrp,
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      e.nama ?? '-',
-                                      style: const TextStyle(fontSize: 13),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    e.nrp,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList();
-                    }
-
-                    // Ensure initial values are in the list or null if not found
-                    // Actually DropdownButton handles value not in items by showing nothing or error if not careful.
-                    // If _fuelman is not null but not in items, we might have an issue if we strictly enforce it.
-                    // But usually we want to allow free text? No, user said "dropdown".
-                    // If offline and no data, maybe allow text?
-                    // For now, let's assume data is there or we show empty.
-                    // If _fuelman is set from master but not in list, we should probably add it or clear it.
-                    // Let's just use the dropdown.
-
-                    // Auto-fill logic
-                    String? defaultFuelman;
-                    String? defaultOperator;
-
-                    if (widget.currentUser != null && widget.initialMaster == null) {
-                      if (fuelmanItems.any((e) => e.value == widget.currentUser!.nrp)) {
-                        defaultFuelman = widget.currentUser!.nrp;
-                      }
-                      if (operatorItems.any((e) => e.value == widget.currentUser!.nrp)) {
-                        defaultOperator = widget.currentUser!.nrp;
-                      }
-                    }
-
-                    // Explicitly set _fuelman/_operator if they are null and we have a default
-                    // But we can't setState here.
-                    // Instead, use the logic in 'value'.
-                    // BUT, if we submit, we need the values in _fuelman/_operator.
-                    // So we must ensure onSave actually captures it, or we initialize them in initState if possible
-                    // But items are not available in initState.
-                    // We can rely on FormField's onSaved, OR
-                    // Just set 'value' and assume user accepts it.
-                    // If user Hits SAVE, we read _fuelman. If _fuelman is null, we need to read 'value'.
-                    // Actually, if value is displayed, it doesn't mean _fuelman is set.
-                    // DropdownButtonFormField updates via onChanged.
-                    // To make this robust:
-                    // Use a 'local' variable for effective value.
-                    // And in OnChanged, update _fuelman.
-                    // AND in SAVE button, if _fuelman is null, check default.
-                    
-                    final effectiveFuelman = _fuelman ?? defaultFuelman;
-                    final effectiveOperator = _operator ?? defaultOperator;
-
-                    // Update state if needed so Save works? No, don't trigger rebuilds/setState here.
-                    // We'll handle "Save" logic to use defaults if null.
-                    // OR better: use WidgetsBinding to set state once? No.
-                    
-                    // We will just use effectiveFuelman for display. 
-                    // And modify the SAVE logic to use effective values or 
-                    // Modify onChanged to be robust. 
-                    // But simpler: just initialize _fuelman/_operator if we find a match! 
-                    // But we are in build. 
-                    // Let's just use FormField which has 'initialValue' (only works once).
-                    // DropdownButtonFormField uses 'value'.
-                    
-                    return Column(
-                      children: [
-                        DropdownButtonFormField<String>(
-                          value: effectiveFuelman,
-                          decoration: const InputDecoration(
-                            labelText: 'Nama Fuelman',
-                          ),
-                          items: fuelmanItems,
-                          onChanged: (v) => setState(() => _fuelman = v),
-                          validator: (v) => v == null ? 'Required' : null,
-                          isExpanded: true,
-                          onSaved: (v) => _fuelman = v,
-                        ),
-                        DropdownButtonFormField<String>(
-                          value: effectiveOperator,
-                          decoration: const InputDecoration(
-                            labelText: 'Nama Operator',
-                          ),
-                          items: operatorItems,
-                          onChanged: (v) => setState(() => _operator = v),
-                          validator: (v) => v == null ? 'Required' : null,
-                          isExpanded: true,
-                          onSaved: (v) => _operator = v,
-                        ),
-                      ],
-                    );
-                  },
-                ),
-
-                BlocBuilder<StorageCubit, StorageState>(
-                  bloc: widget.storageCubit,
-                  builder: (context, state) {
-                    List<DropdownMenuItem<String>> warehouseItems = [];
-                    if (state is StorageSynced) {
-                      final warehouses = List<StorageEntity>.from(state.warehouses)
-                        ..sort(
-                          (a, b) => a.warehouseId.compareTo(b.warehouseId),
-                        );
-                      
-                      warehouseItems = warehouses.map((e) {
-                        return DropdownMenuItem(
-                          value: e.warehouseId,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
+                        fuelmanItems =
+                            fuelmen.map((e) {
+                              return DropdownMenuItem(
+                                value: e.nrp,
                                 child: Text(
-                                  e.warehouseId,
-                                  style: const TextStyle(fontSize: 13),
+                                  e.nama ?? '-',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.black87,
+                                  ), // Dropdown items need dark text on light popup usually, unless theme is full dark
                                   overflow: TextOverflow.ellipsis,
                                 ),
+                              );
+                            }).toList();
+
+                        operatorItems =
+                            operators.map((e) {
+                              return DropdownMenuItem(
+                                value: e.nrp,
+                                child: Text(
+                                  e.nama ?? '-',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.black87,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList();
+                      }
+
+                      // Auto-fill logic
+                      String? defaultFuelman;
+                      String? defaultOperator;
+
+                      if (widget.currentUser != null &&
+                          widget.initialMaster == null) {
+                        if (fuelmanItems.any(
+                          (e) => e.value == widget.currentUser!.nrp,
+                        )) {
+                          defaultFuelman = widget.currentUser!.nrp;
+                        }
+                        if (operatorItems.any(
+                          (e) => e.value == widget.currentUser!.nrp,
+                        )) {
+                          defaultOperator = widget.currentUser!.nrp;
+                        }
+                      }
+
+                      final effectiveFuelman = _fuelman ?? defaultFuelman;
+                      final effectiveOperator = _operator ?? defaultOperator;
+                      return Column(
+                        children: [
+                          DropdownButtonFormField<String>(
+                            value: effectiveFuelman,
+                            dropdownColor: Colors.white,
+                            decoration: const InputDecoration(
+                              labelText: 'Nama Fuelman',
+                              labelStyle: TextStyle(color: Colors.white70),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.white30),
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                e.unitId ?? '-',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.cyanAccent,
                                 ),
                               ),
-                            ],
+                              filled: true,
+                              fillColor: Colors.white10,
+                            ),
+                            style: const TextStyle(color: Colors.white),
+                            items: fuelmanItems,
+                            selectedItemBuilder: (context) {
+                              return fuelmanItems.map((e) {
+                                return Text(
+                                  (e.child as Text).data ?? '-',
+                                  style: const TextStyle(color: Colors.white),
+                                  overflow: TextOverflow.ellipsis,
+                                );
+                              }).toList();
+                            },
+                            onChanged: (v) => setState(() => _fuelman = v),
+                            validator: (v) => v == null ? 'Required' : null,
+                            isExpanded: true,
+                            onSaved: (v) => _fuelman = v,
                           ),
-                        );
-                      }).toList();
-                    }
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<String>(
+                            value: effectiveOperator,
+                            dropdownColor: Colors.white,
+                            decoration: const InputDecoration(
+                              labelText: 'Nama Operator',
+                              labelStyle: TextStyle(color: Colors.white70),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.white30),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.cyanAccent,
+                                ),
+                              ),
+                              filled: true,
+                              fillColor: Colors.white10,
+                            ),
+                            style: const TextStyle(color: Colors.white),
+                            items: operatorItems,
+                            selectedItemBuilder: (context) {
+                              return operatorItems.map((e) {
+                                return Text(
+                                  (e.child as Text).data ?? '-',
+                                  style: const TextStyle(color: Colors.white),
+                                  overflow: TextOverflow.ellipsis,
+                                );
+                              }).toList();
+                            },
+                            onChanged: (v) => setState(() => _operator = v),
+                            validator: (v) => v == null ? 'Required' : null,
+                            isExpanded: true,
+                            onSaved: (v) => _operator = v,
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
 
-                    return DropdownButtonFormField<String>(
-                      value: warehouseItems.any((e) => e.value == _warehouse) ? _warehouse : null,
-                      decoration: const InputDecoration(labelText: 'Warehouse Code'),
-                      items: warehouseItems,
-                      onChanged: (v) {
-                        if (v == null) return;
-                        setState(() => _warehouse = v);
-                      },
-                      isExpanded: true,
-                    );
-                  },
-                ),
-              ],
+                  BlocBuilder<StorageCubit, StorageState>(
+                    bloc: widget.storageCubit,
+                    builder: (context, state) {
+                      List<DropdownMenuItem<String>> warehouseItems = [];
+                      if (state is StorageSynced) {
+                        final warehouses = List<StorageEntity>.from(
+                          state.warehouses,
+                        )..sort(
+                          (a, b) => a.warehouseId.compareTo(b.warehouseId),
+                        );
+
+                        warehouseItems =
+                            warehouses.map((e) {
+                              return DropdownMenuItem(
+                                value: e.warehouseId,
+                                child: Text(
+                                  '${e.warehouseId} - ${e.unitId ?? "-"}',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.black87,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList();
+                      }
+
+                      return DropdownButtonFormField<String>(
+                        value:
+                            warehouseItems.any((e) => e.value == _warehouse)
+                                ? _warehouse
+                                : null,
+                        dropdownColor: Colors.white,
+                        decoration: const InputDecoration(
+                          labelText: 'Warehouse Code',
+                          labelStyle: TextStyle(color: Colors.white70),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white30),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.cyanAccent),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white10,
+                        ),
+                        style: const TextStyle(color: Colors.white),
+                        items: warehouseItems,
+                        selectedItemBuilder: (context) {
+                          return warehouseItems.map((e) {
+                            return Text(
+                              (e.child as Text).data ?? '-',
+                              style: const TextStyle(color: Colors.white),
+                              overflow: TextOverflow.ellipsis,
+                            );
+                          }).toList();
+                        },
+                        onChanged: (v) {
+                          if (v == null) return;
+                          setState(() => _warehouse = v);
+                        },
+                        isExpanded: true,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          final form = _formKey.currentState;
+                          if (form == null || !form.validate()) return;
+                          form.save();
+
+                          final nomor = _generateNomor(
+                            _dateTime,
+                            currentShift,
+                            _warehouse,
+                          );
+                          final session = LotoSession(
+                            dateTime: _dateTime,
+                            shift: currentShift,
+                            fuelman: _fuelman?.trim() ?? '',
+                            operatorName: _operator?.trim() ?? '',
+                            warehouseCode: _warehouse,
+                            nomor: nomor,
+                          );
+                          Navigator.of(context).pop(session);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.cyanAccent,
+                          foregroundColor: Colors.black,
+                        ),
+                        child: const Text('Save'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final form = _formKey.currentState;
-              if (form == null || !form.validate()) return;
-              form.save();
-              
-              final nomor = _generateNomor(_dateTime, currentShift, _warehouse);
-              final session = LotoSession(
-                dateTime: _dateTime,
-                shift: currentShift,
-                fuelman: _fuelman?.trim() ?? '',
-                operatorName: _operator?.trim() ?? '',
-                warehouseCode: _warehouse,
-                nomor: nomor,
-              );
-              Navigator.of(context).pop(session);
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
   }
 }
-

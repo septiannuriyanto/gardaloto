@@ -17,6 +17,9 @@ import 'package:gardaloto/domain/repositories/storage_repository.dart';
 import 'package:gardaloto/data/repositories/storage_repository_impl.dart';
 import 'package:gardaloto/presentation/cubit/storage_cubit.dart';
 import 'package:gardaloto/presentation/cubit/loto_sessions_cubit.dart';
+import 'package:gardaloto/domain/repositories/unit_repository.dart';
+import 'package:gardaloto/data/repositories/unit_repository_impl.dart';
+import 'package:gardaloto/presentation/cubit/unit_cubit.dart';
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -62,7 +65,7 @@ Future<void> initServiceLocator() async {
   // LOTO MASTER (shared preferences)
   final _masterRepo = await LotoMasterRepository.create();
   sl.registerLazySingleton(() => _masterRepo);
-  sl.registerFactory(() => LotoCubit(sl<LotoRepository>()));
+  sl.registerLazySingleton(() => LotoCubit(sl<LotoRepository>()));
 
   // MANPOWER
   final _manpowerRepo = ManpowerRepositoryImpl(sl<SupabaseClient>());
@@ -76,6 +79,12 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton<StorageRepository>(() => _storageRepo);
   sl.registerFactory(() => StorageCubit(sl<StorageRepository>()));
   sl.registerFactory(() => LotoSessionsCubit(sl<LotoRepository>()));
+
+  // UNIT RECOMMENDATIONS
+  sl.registerLazySingleton<UnitRepository>(
+    () => UnitRepositoryImpl(sl<SupabaseClient>()),
+  );
+  sl.registerFactory(() => UnitCubit(sl<UnitRepository>()));
 
   sl.registerFactory(
     () => AuthCubit(

@@ -55,7 +55,7 @@ class _FitToWorkPageState extends State<FitToWorkPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const Drawer(child: Sidebar()),
+      drawer: const Sidebar(),
       appBar: AppBar(title: const Text("Fit To Work")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
