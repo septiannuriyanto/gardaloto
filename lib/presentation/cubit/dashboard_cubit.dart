@@ -9,7 +9,7 @@ class DashboardCubit extends Cubit<DashboardState> {
   DashboardCubit()
       : super(DashboardState(
           selectedDate: DateTime.now(),
-          selectedShift: _calculateShift(DateTime.now()),
+      selectedShift: 0, // Default to Trend (Average Only)
         ));
 
   static int _calculateShift(DateTime date) {
