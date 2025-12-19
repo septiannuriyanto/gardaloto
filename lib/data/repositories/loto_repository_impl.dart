@@ -141,7 +141,7 @@ class LotoRepositoryImpl implements LotoRepository {
         // We use the already processed (resized & watermarked) image from local storage
         await _supabaseClient.storage
             .from('loto_records')
-            .upload(filePath, File(record.photoPath));
+            .upload(filePath, File(record.photoPath), fileOptions: const FileOptions(upsert: true));
 
         // Get the public URL for the uploaded image
         final imageUrl = _supabaseClient.storage
