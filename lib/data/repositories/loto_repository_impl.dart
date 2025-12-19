@@ -9,7 +9,7 @@ import 'package:gardaloto/data/models/loto_model_adapter.dart';
 import 'package:gardaloto/domain/entities/loto_entity.dart';
 import 'package:gardaloto/domain/entities/loto_session.dart';
 import 'package:gardaloto/domain/repositories/loto_repository.dart';
-import 'package:gardaloto/core/image_utils.dart';
+
 
 class LotoRepositoryImpl implements LotoRepository {
   static const _boxName = 'loto_records';
@@ -134,23 +134,14 @@ class LotoRepositoryImpl implements LotoRepository {
       
       for (final record in records) {
         // Use unit code as filename instead of timestamp
-        final fileName = '${record.codeNumber}.jpg';
+        final fileName = '${record.codeNumber}.png';
         final filePath = '$imagePathPrefix/$fileName';
 
-        // Compress image
-        // I need to import image_utils.dart. I will assume I can add the import at the top.
-        // For now, I'll comment out the compression call and add it after I add the import.
-        // actually, I can just use the tool to add import and then replace this.
-        // But let's try to do it all here if possible.
-        // I'll skip compression call here and do it in next step after adding import.
-        
-        // Compress image
-        final compressedPath = await compressImage(inputPath: record.photoPath);
-
         // Upload the image file to Supabase Storage with the proper path
+        // We use the already processed (resized & watermarked) image from local storage
         await _supabaseClient.storage
             .from('loto_records')
-            .upload(filePath, File(compressedPath));
+            .upload(filePath, File(record.photoPath));
 
         // Get the public URL for the uploaded image
         final imageUrl = _supabaseClient.storage
@@ -305,16 +296,14 @@ class LotoRepositoryImpl implements LotoRepository {
 
       for (final record in records) {
         // Use unit code as filename instead of timestamp
-        final fileName = '${record.codeNumber}.jpg';
+        final fileName = '${record.codeNumber}.png';
         final filePath = '$imagePathPrefix/$fileName';
 
-        // Compress image
-        final compressedPath = await compressImage(inputPath: record.photoPath);
-
         // Upload the image file to Supabase Storage with the proper path
+        // We use the already processed (resized & watermarked) image from local storage
         await _supabaseClient.storage
             .from('loto_records')
-            .upload(filePath, File(compressedPath), fileOptions: const FileOptions(upsert: true));
+            .upload(filePath, File(record.photoPath), fileOptions: const FileOptions(upsert: true));
 
         // Get the public URL for the uploaded image
         final imageUrl = _supabaseClient.storage

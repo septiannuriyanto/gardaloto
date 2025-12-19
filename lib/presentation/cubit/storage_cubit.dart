@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:gardaloto/domain/entities/storage_entity.dart';
 import 'package:gardaloto/domain/repositories/storage_repository.dart';
+import 'package:gardaloto/core/utils/network_utils.dart';
 
 abstract class StorageState extends Equatable {
   const StorageState();
@@ -36,22 +37,42 @@ class StorageCubit extends Cubit<StorageState> {
   StorageCubit(this.repo) : super(StorageInitial());
 
   Future<void> syncAndLoad() async {
+    // 1. Pre-check connection
+    final hasInternet = await NetworkUtils.hasInternetConnection();
+    if (!hasInternet) {
+       await loadLocalOnly();
+       if (state is StorageSynced) {
+         final current = state as StorageSynced;
+         emit(StorageSynced("Offline Mode. Using local data.", current.warehouses));
+       }
+       return;
+    }
+
     emit(StorageSyncing());
     try {
       final msg = await repo.syncStorage();
       final warehouses = await repo.getWarehouses();
       emit(StorageSynced(msg, warehouses));
     } catch (e) {
-      // Even if sync fails, try to load local data
+      // If sync fails, try to load local data
       try {
         final warehouses = await repo.getWarehouses();
         if (warehouses.isNotEmpty) {
-           emit(StorageSynced('Sync failed: $e. Using local data.', warehouses));
+           final msg = e.toString();
+           final userMsg = (msg.contains("SocketException") || msg.contains("AuthRetryableFetchException")) 
+               ? "Offline mode" 
+               : "Sync failed. Using local data.";
+           emit(StorageSynced(userMsg, warehouses));
            return;
         }
       } catch (_) {}
       
-      emit(StorageError(e.toString()));
+      final msg = e.toString();
+      if (msg.contains("SocketException") || msg.contains("AuthRetryableFetchException")) {
+         emit(const StorageError("Network Error. Showing available options."));
+      } else {
+         emit(StorageError("Error: $msg"));
+      }
     }
   }
   Future<void> loadLocalOnly() async {

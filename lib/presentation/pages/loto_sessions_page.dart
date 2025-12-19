@@ -16,6 +16,7 @@ import 'package:gardaloto/presentation/widget/glass_fab.dart';
 import 'package:intl/intl.dart';
 import 'package:gardaloto/core/secret.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:gardaloto/presentation/widget/generic_error_view.dart';
 
 class LotoSessionsPage extends StatelessWidget {
   const LotoSessionsPage({super.key});
@@ -317,7 +318,10 @@ class _LotoSessionsViewState extends State<_LotoSessionsView> {
                   if (state is LotoSessionsLoading) {
                     return const Center(child: CircularProgressIndicator(color: Colors.cyanAccent));
                   } else if (state is LotoSessionsError) {
-                    return Center(child: Text('Error: ${state.message}', style: const TextStyle(color: Colors.white)));
+                    return GenericErrorView(
+                      message: state.message,
+                      onRefresh: _applyFilters,
+                    );
                   } else if (state is LotoSessionsLoaded) {
                     if (state.sessions.isEmpty) {
                       return const Center(child: Text('No sessions found.', style: TextStyle(color: Colors.white70)));

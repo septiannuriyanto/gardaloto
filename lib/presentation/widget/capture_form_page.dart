@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gardaloto/domain/entities/loto_entity.dart';
-import 'package:gardaloto/core/image_utils.dart';
+
 import 'package:gardaloto/presentation/cubit/loto_cubit.dart';
 import 'package:gardaloto/presentation/cubit/loto_state.dart';
 import 'package:gardaloto/presentation/cubit/unit_cubit.dart';
@@ -677,84 +677,45 @@ class _CaptureFormPageState extends State<CaptureFormPage> {
                                       return;
                                     }
 
-                                    String finalPath;
-                                    try {
-                                      print('🖼️ Adding watermark to image...');
-                                      finalPath = await addWatermarkToImage(
-                                        inputPath: state.photoPath,
-                                        unitCode:
-                                            upperText, // Use validated Uppercase text
-                                        nrp: _wm1Ctrl.text.replaceFirst(
-                                          'NRP: ',
-                                          '',
-                                        ), // Use initialized NRP from ctrl
-                                        gps:
-                                            '${state.lat.toStringAsFixed(5)}, ${state.lng.toStringAsFixed(5)}',
-                                        timestamp: state.timestamp,
-                                      );
-                                      print(
-                                        '✅ Watermark added successfully: $finalPath',
-                                      );
-                                    } catch (e) {
-                                      print('❌ Failed to add watermark: $e');
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              'Failed to watermark image: $e',
-                                            ),
-                                            backgroundColor: Colors.red,
-                                          ),
-                                        );
-                                      }
-                                      return;
-                                    }
+                                    // Instant Submit Logic
+                                    // We no longer compress/watermark here in the foreground.
+                                    // We pass the raw data to the Cubit, which saves it immediately
+                                    // and then processes the image in the background.
 
-                                    // Get sessionId from current capturing state
-                                    final sessionId =
-                                        state.session?.nomor ??
-                                        "default_session";
+                                    final sessionId = state.session?.nomor ?? "default_session";
                                     print('📝 Session ID: $sessionId');
 
-                                    if (!context.mounted) {
-                                      print(
-                                        '⚠️ Context not mounted, aborting submit',
-                                      );
-                                      return;
-                                    }
+                                    if (!context.mounted) return;
 
                                     try {
-                                      print('💾 Starting submit to cubit...');
+                                      print('💾 Starting FAST submit to cubit...');
+                                      
+                                      // Extract metadata for watermarking
+                                      final nrp = _wm1Ctrl.text.replaceFirst('NRP: ', '');
+                                      final gps = '${state.lat.toStringAsFixed(5)}, ${state.lng.toStringAsFixed(5)}';
+                                      
                                       await context.read<LotoCubit>().submit(
                                         LotoEntity(
-                                          codeNumber:
-                                              upperText, // Use validated Uppercase text
-                                          photoPath: finalPath,
+                                          codeNumber: upperText,
+                                          photoPath: state.photoPath, // Send RAW path
                                           timestamp: state.timestamp,
                                           latitude: state.lat,
                                           longitude: state.lng,
                                           sessionId: sessionId,
                                         ),
+                                        // Pass extra data needed for background watermarking
+                                        nrp: nrp,
+                                        gps: gps,
+                                        timestamp: state.timestamp,
                                       );
-                                      print('✅ Submit completed successfully');
-
-                                      // Wait a bit to ensure state is processed
-                                      await Future.delayed(
-                                        const Duration(milliseconds: 300),
-                                      );
+                                      print('✅ Submit initiated');
 
                                       if (context.mounted) {
-                                        print(
-                                          '📤 Showing success message and navigating back...',
-                                        );
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
+                                        ScaffoldMessenger.of(context).showSnackBar(
                                           const SnackBar(
                                             content: Text('Saved successfully'),
                                             backgroundColor: Colors.green,
+                                            duration: Duration(seconds: 1),
                                           ),
                                         );
 

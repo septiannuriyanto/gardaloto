@@ -4,55 +4,16 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:image/image.dart' as img;
+
 
 /// Compresses the image at [inputPath] to be under [maxSizeInBytes].
 /// Returns the path to the compressed image (which might be the same as inputPath if overwritten).
-Future<String> compressImage({
-  required String inputPath,
-  int maxSizeInBytes = 150 * 1024, // 150KB
-}) async {
-  final file = File(inputPath);
-  if (!file.existsSync()) return inputPath;
 
-  int fileSize = await file.length();
-  if (fileSize <= maxSizeInBytes) return inputPath;
-
-  // Read image
-  final bytes = await file.readAsBytes();
-  img.Image? image = img.decodeImage(bytes);
-
-  if (image == null) return inputPath; // Failed to decode
-
-  // Resize if too big (e.g. > 1280px width) to help compression
-  if (image.width > 1280) {
-    image = img.copyResize(image, width: 1280);
-  }
-
-  // Compress loop
-  int quality = 85;
-  List<int> compressedBytes = [];
-
-  do {
-    compressedBytes = img.encodeJpg(image, quality: quality);
-    if (compressedBytes.length <= maxSizeInBytes) break;
-    quality -= 10;
-  } while (quality > 10);
-
-  // Write back to file (overwrite or new file)
-  // For simplicity, let's overwrite or create a temp file.
-  // Since we want to upload this, overwriting the watermarked file is fine as it's a copy anyway usually.
-  // But to be safe, let's create a new file.
-  final dir = p.dirname(inputPath);
-  final base = p.basenameWithoutExtension(inputPath);
-  final outPath = p.join(dir, '${base}_compressed.jpg');
-
-  await File(outPath).writeAsBytes(compressedBytes);
-  return outPath;
-}
 
 /// Adds a watermark to [inputPath] and writes the result to a new PNG file.
 /// Returns the path to the new watermarked file.
+///
+/// [targetWidth] allows resizing the image during decoding. Default is 1280.
 Future<String> addWatermarkToImage({
   required String inputPath,
   required String unitCode,
@@ -60,6 +21,7 @@ Future<String> addWatermarkToImage({
   required String gps,
   required DateTime timestamp,
   String? suffix = '_wm',
+  int targetWidth = 1280,
 }) async {
   final inputFile = File(inputPath);
   if (!inputFile.existsSync()) {
@@ -67,7 +29,8 @@ Future<String> addWatermarkToImage({
   }
 
   final bytes = await inputFile.readAsBytes();
-  final codec = await ui.instantiateImageCodec(bytes);
+  // Native decoding + resizing in one step. Much faster than 'image' package.
+  final codec = await ui.instantiateImageCodec(bytes, targetWidth: targetWidth);
   final frame = await codec.getNextFrame();
   final srcImage = frame.image;
   final width = srcImage.width.toDouble();

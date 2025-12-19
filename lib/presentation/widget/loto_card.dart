@@ -9,8 +9,14 @@ import 'package:gardaloto/presentation/widget/glass_panel.dart';
 class LotoCard extends StatelessWidget {
   final LotoEntity entity;
   final VoidCallback? onImageTap;
+  final bool isProcessing; // New prop
 
-  const LotoCard({super.key, required this.entity, this.onImageTap});
+  const LotoCard({
+    super.key, 
+    required this.entity, 
+    this.onImageTap,
+    this.isProcessing = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +33,39 @@ class LotoCard extends StatelessWidget {
                 height: 100,
                 child: Builder(
                   builder: (context) {
+                    // SKELETON STATE
+                    if (isProcessing) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white10,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 24, 
+                                height: 24, 
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2, 
+                                  color: Colors.white54,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                "Processing",
+                                style: TextStyle(
+                                  fontSize: 10, 
+                                  color: Colors.white54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
                     final file = File(entity.photoPath);
                     if (file.existsSync()) {
                       return GestureDetector(

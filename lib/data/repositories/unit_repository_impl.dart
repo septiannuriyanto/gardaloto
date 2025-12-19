@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:gardaloto/domain/repositories/unit_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:gardaloto/core/utils/network_utils.dart';
 
 class UnitRepositoryImpl implements UnitRepository {
   final SupabaseClient _supabase;
@@ -29,7 +30,19 @@ class UnitRepositoryImpl implements UnitRepository {
         }
       }
 
-      // If cache is stale or missing, fetch from RPC
+      // If cache is stale or missing, check connection
+      final hasInternet = await NetworkUtils.hasInternetConnection();
+      if (!hasInternet) {
+        if (jsonCache != null) {
+          // Return stale cache if offline
+          final List<dynamic> decoded = jsonDecode(jsonCache);
+          return decoded.cast<String>();
+        }
+        // No internet and no cache
+        throw Exception('Offline and no local units found.');
+      }
+
+      // Connect to fetch new data
       return await _fetchFromRpc(prefs);
     } catch (e) {
       // On error (e.g. network), try to fallback to cache even if stale

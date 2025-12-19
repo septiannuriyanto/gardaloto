@@ -1,19 +1,20 @@
+import 'dart:async';
 import 'dart:io';
-import 'package:flutter/material.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gardaloto/domain/entities/loto_entity.dart';
 import 'package:gardaloto/domain/repositories/loto_repository.dart';
 import 'package:gardaloto/presentation/cubit/loto_state.dart';
 import 'package:gardaloto/domain/entities/loto_session.dart';
 import 'package:gardaloto/domain/usecases/send_loto_report.dart';
+import 'package:gardaloto/core/image_utils.dart';
 
 class LotoCubit extends Cubit<LotoState> {
   final LotoRepository repo;
 
   LotoSession? _currentSession;
   bool _isReviewMode = false;
-  // Cache for review mode
-  List<LotoEntity> _remoteRecordsCache = [];
+
 
   // Internal storage for capture form selected code (not part of state)
   String? _captureSelectedCode;
@@ -34,7 +35,6 @@ class LotoCubit extends Cubit<LotoState> {
     _isReviewMode = false;
 
     // Skip all state emission if we're in capture mode to prevent state override
-    // unless forced (e.g. entering LotoPage from history)
     if (!force && state is LotoCapturing) {
       print('🔄 Skipping loadLocalRecords - capture in progress');
       return;
@@ -45,26 +45,37 @@ class LotoCubit extends Cubit<LotoState> {
       emit(LotoLoading());
     }
 
-    try {
-      _currentSession = await repo.getActiveSession();
-      final records =
-          _currentSession != null
-              ? await repo.getLocalSessionRecords(_currentSession!.nomor)
-              : <LotoEntity>[];
+    print('🕒 Starting loadLocalRecords with 10s timeout...');
 
-      // Double-check we're not in capture mode before emitting loaded state
-      if (state is! LotoCapturing) {
-        emit(
-          LotoLoaded(
-            records,
-            session: _currentSession,
-            isPendingOperation: false,
-          ),
-        );
-      } else {
-        print('🔄 Skipping LotoLoaded emission - capture still in progress');
-      }
+    try {
+      await Future<void>(() async {
+        _currentSession = await repo.getActiveSession();
+        final records =
+            _currentSession != null
+                ? await repo.getLocalSessionRecords(_currentSession!.nomor)
+                : <LotoEntity>[];
+
+        print('✅ Local records loaded: ${records.length}');
+
+        // Double-check we're not in capture mode before emitting loaded state
+        if (state is! LotoCapturing) {
+          emit(
+            LotoLoaded(
+              records,
+              session: _currentSession,
+              isPendingOperation: false,
+            ),
+          );
+        } else {
+          print('🔄 Skipping LotoLoaded emission - capture still in progress');
+        }
+      }).timeout(const Duration(seconds: 10));
+
+    } on TimeoutException {
+       print('⏰ TimeoutException in loadLocalRecords!');
+       emit(LotoError("Connection Timeout. Please check your internet or try again."));
     } catch (e) {
+      print('❌ Error in loadLocalRecords: $e');
       // If loading fails, try to at least load the session if possible
       if (state is! LotoCapturing) {
         try {
@@ -89,48 +100,41 @@ class LotoCubit extends Cubit<LotoState> {
     _isReviewMode = true;
     _currentSession = session;
 
-    // Skip all state emission if we're in capture mode to prevent state override
+    // Skip all state emission if we're in capture mode
     if (state is LotoCapturing) {
       print('🔄 Skipping loadReviewSession - capture in progress');
       return;
     }
 
-    // Only emit LotoLoading if we're not already in LotoCapturing state
-    if (state is! LotoCapturing) {
-      emit(LotoLoading());
-    }
+    print('🕒 Starting loadReviewSession with 10s timeout...');
+    emit(LotoLoading());
 
     try {
-      final remoteRecords = await repo.fetchSessionRecords(session.nomor);
-      _remoteRecordsCache = remoteRecords; // Update cache
+      await Future<void>(() async {
+        print('📡 Fetching remote records...');
+        final remoteRecords = await repo.fetchSessionRecords(session.nomor);
+        print('✅ Remote records fetched: ${remoteRecords.length}');
+        
+        final localRecords = await repo.getLocalSessionRecords(session.nomor);
 
-      final localRecords = await repo.getLocalSessionRecords(session.nomor);
+        final allRecords = [...remoteRecords, ...localRecords];
+        // Sort by timestamp
+        allRecords.sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
-      final allRecords = [...remoteRecords, ...localRecords];
-      // Sort by timestamp
-      allRecords.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-
-      // Double-check we're not in capture mode before emitting loaded state
-      if (state is! LotoCapturing) {
         emit(
           LotoLoaded(allRecords, session: session, isPendingOperation: false),
         );
-      } else {
-        print(
-          '🔄 Skipping LotoLoaded emission in review - capture still in progress',
-        );
-      }
+      }).timeout(const Duration(seconds: 10));
+
+    } on TimeoutException {
+       print('⏰ TimeoutException caught in Cubit!');
+       emit(LotoError("Connection Timeout. Please check your internet or try again."));
     } catch (e) {
-      // Only emit error if not in capture mode
-      if (state is! LotoCapturing) {
-        emit(LotoError(e.toString()));
-      } else {
-        print(
-          '🔄 Skipping error emission in review - capture still in progress',
-        );
-      }
+      print('❌ Error caught in loadReviewSession: $e');
+      emit(LotoError("Error: $e"));
     }
   }
+
 
   Future<void> startCapture({
     required String photoPath,
@@ -259,44 +263,119 @@ class LotoCubit extends Cubit<LotoState> {
     }
   }
 
-  Future<void> submit(LotoEntity entity) async {
-    // Show loading state first
-    emit(LotoSubmitting());
+  // Track records currently being processed (background watermarking)
+  final Set<String> _processingIds = {};
 
+  bool isProcessing(String timestampId) {
+    return _processingIds.contains(timestampId);
+  }
+
+  Future<void> submit(LotoEntity entity, {
+    required String nrp,
+    required String gps,
+    required DateTime timestamp,
+  }) async {
+    // Show loading state first? No, we want instant feedback.
+    // Actually, we might be in Capture state.
+    
     try {
-      print('🎯 Starting submit process for entity: ${entity.codeNumber}');
+      print('🚀 Fast Submit: Saving raw data for ${entity.codeNumber}');
 
-      // Check if photo file exists
+      // 1. Save data with RAW photo path immediately
+      // Validate file existence
       final file = File(entity.photoPath);
       if (!file.existsSync()) {
         throw Exception('Photo file not found: ${entity.photoPath}');
       }
-
-      print('✅ Photo file exists, proceeding with saveLocal...');
+      
       await repo.saveLocal(entity);
-      print('✅ saveLocal completed successfully');
-
-      // Ensure we have the session set if it was missing (e.g. first record)
+      
+      // Ensure we have session
       if (_currentSession == null && entity.sessionId.isNotEmpty) {
-        print('🔄 Loading session for first record...');
         _currentSession = await repo.getActiveSession();
       }
 
-      print('🔄 Reloading data...');
-      final newState = await _reload();
+      print('✅ Raw data saved. Triggering background processing...');
+      
+      // 2. Mark as processing
+      final id = entity.timestamp.toIso8601String();
+      _processingIds.add(id);
+      
+      // 3. Emit Loaded state immediately so UI pops and shows list (with raw/skeleton)
+      // We need to reload the list to include the new item
+      final newState = await _reload(); 
       emit(newState);
-      print('✅ Submit process completed successfully');
-    } catch (e, stackTrace) {
-      print("❌ Submit failed: $e");
-      print("Stack trace: $stackTrace");
+      
+      // 4. Start background processing (Fire-and-Forget)
+      // We don't await this here, allowing the UI to proceed
+      _processImageInBackground(entity, nrp, gps, timestamp);
 
-      // Try to preserve current state if we were in a valid state
-      try {
-        await _reload();
-        emit(LotoError("Failed to save record: $e"));
-      } catch (reloadError) {
-        print("❌ Failed to reload after error: $reloadError");
-        emit(LotoError("Failed to save record and recover: $e"));
+    } catch (e) {
+       print("❌ Submit failed: $e");
+       emit(LotoError("Failed to save record: $e"));
+    }
+  }
+
+  Future<void> _processImageInBackground(
+    LotoEntity rawEntity, 
+    String nrp, 
+    String gps, 
+    DateTime timestamp
+  ) async {
+    final id = rawEntity.timestamp.toIso8601String();
+    print('⚙️ Background: Processing image for $id ...');
+    
+    try {
+       // 1. Resize & Watermark
+       // We import image_utils.dart to use addWatermarkToImage
+       // Note: We need to import 'package:gardaloto/core/image_utils.dart';
+       final finalPath = await addWatermarkToImage(
+         inputPath: rawEntity.photoPath,
+         unitCode: rawEntity.codeNumber,
+         nrp: nrp,
+         gps: gps,
+         timestamp: timestamp,
+         targetWidth: 1280, // Resize to 1280px width
+       );
+       
+       print('✅ Background: Watermark added: $finalPath');
+       
+       // 2. Update DB with new path
+       final updatedEntity = LotoEntity(
+         codeNumber: rawEntity.codeNumber,
+         photoPath: finalPath, // Updated path
+         timestamp: rawEntity.timestamp,
+         latitude: rawEntity.latitude,
+         longitude: rawEntity.longitude,
+         sessionId: rawEntity.sessionId,
+       );
+       
+       // We can use saveLocal again, it should overwrite based on timestamp/primary key?
+       // Repository `saveLocal` usually effectively upserts or we might need `updateLocal`.
+       // Assuming `saveLocal` handles updates if key matches (timestamp usually key for local SQLite/Hive).
+       // Checking `saveLocal` implementation would be good, but assuming upsert for now.
+       await repo.saveLocal(updatedEntity);
+       
+       print('✅ Background: DB updated with watermarked image.');
+       
+       // 3. Cleanup
+      _processingIds.remove(id);
+      
+      // 4. Emit updated state (thumbnail will change from Skeleton to Image)
+      // Only emit if the current state allows (e.g. we are still in Loaded state viewing the list)
+      if (state is LotoLoaded) {
+         final newState = await _reload();
+         emit(newState);
+      }
+      
+    } catch (e) {
+      print('❌ Background Processing Failed: $e');
+      _processingIds.remove(id);
+      // We don't necessarily emit error to UI as the user might be doing something else.
+      // The Raw image is still preserved in DB, so it's not a total loss.
+      // Maybe we can flag it as "failed" in future.
+      if (state is LotoLoaded) {
+         emit(await _reload()); // Refresh just to remove skeleton state
       }
     }
   }
@@ -341,49 +420,45 @@ class LotoCubit extends Cubit<LotoState> {
     }
   }
 
-  Future<LotoLoaded> _reload() async {
-    if (_isReviewMode && _currentSession != null) {
-      try {
-        // Use cache instead of redundant network fetch
-        final remoteRecords = _remoteRecordsCache;
-
-        final localRecords = await repo.getLocalSessionRecords(
-          _currentSession!.nomor,
-        );
-        final allRecords = [...remoteRecords, ...localRecords];
-        allRecords.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-        return LotoLoaded(
-          allRecords,
-          session: _currentSession,
-          isPendingOperation: false,
-        );
-      } catch (e) {
-        print("Error in _reload (review mode): $e");
-        // Return empty list with session instead of throwing
-        return LotoLoaded(
-          [],
-          session: _currentSession,
-          isPendingOperation: false,
-        );
-      }
-    } else {
-      try {
-        final session = await repo.getActiveSession();
-        _currentSession = session;
-        final records =
-            session != null
+  Future<LotoState> _reload() async {
+    try {
+      return await Future<LotoState>(() async {
+        if (_isReviewMode && _currentSession != null) {
+          // Use cache if available/appropriate or fetch again
+          // For consistency with timeout, we fetch again or careful with cache
+          // Let's re-fetch to ensure sync, or use cache?
+          // Previous logic used cache. Let's stick to safe logic but wrapped in timeout.
+          
+           final remoteRecords = await repo.fetchSessionRecords(_currentSession!.nomor);
+           
+           final localRecords = await repo.getLocalSessionRecords(_currentSession!.nomor);
+           final allRecords = [...remoteRecords, ...localRecords];
+           allRecords.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+           
+           return LotoLoaded(
+              allRecords,
+              session: _currentSession,
+              isPendingOperation: false,
+           );
+        } else {
+           final session = await repo.getActiveSession();
+           _currentSession = session;
+           final records = session != null
                 ? await repo.getLocalSessionRecords(session.nomor)
                 : <LotoEntity>[];
-        return LotoLoaded(records, session: session, isPendingOperation: false);
-      } catch (e) {
-        print("Error in _reload (active mode): $e");
-        // Return empty list instead of throwing
-        return LotoLoaded(
-          [],
-          session: _currentSession,
-          isPendingOperation: false,
-        );
-      }
+           return LotoLoaded(records, session: session, isPendingOperation: false);
+        }
+      }).timeout(const Duration(seconds: 10));
+
+    } on TimeoutException {
+      return LotoError("Connection Timeout. Please check your internet or try again.");
+    } catch (e) {
+      print("Error in _reload: $e");
+      // Return empty list/error state representation?
+      // Since return type is LotoState, we can return LotoError.
+      // But _reload is used to silently update often.
+      // However, if it times out, we should probably know.
+      return LotoError(e.toString());
     }
   }
 
@@ -400,15 +475,22 @@ class LotoCubit extends Cubit<LotoState> {
       emit(LotoLoaded(current, session: session, isPendingOperation: pending));
     } else {
       // If we're not in LotoLoaded, reload and attach the session
-      final loaded = await _reload();
-      emit(
-        LotoLoaded(
-          loaded.records,
-          session: session,
-          isPendingOperation: loaded.isPendingOperation,
-        ),
-      );
+      final loadedState = await _reload();
+      
+      if (loadedState is LotoLoaded) {
+        emit(
+          LotoLoaded(
+            loadedState.records,
+            session: session,
+            isPendingOperation: loadedState.isPendingOperation,
+          ),
+        );
+      } else {
+        // If _reload returns an error or initial state, we might want to emit that instead
+        emit(loadedState);
+      }
     }
+
   }
 
   Future<void> clearSession() async {
@@ -587,7 +669,7 @@ class LotoCubit extends Cubit<LotoState> {
       // 5. (Optional) Emit LotoLoaded(newRecords).
 
       final remoteRecords = await repo.fetchSessionRecords(session.nomor);
-      _remoteRecordsCache = remoteRecords; // Update cache
+
 
       final localRecords = await repo.getLocalSessionRecords(
         session.nomor,

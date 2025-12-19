@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:gardaloto/domain/entities/loto_session.dart';
 import 'package:gardaloto/domain/repositories/loto_repository.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:gardaloto/core/utils/network_utils.dart';
 
 abstract class LotoSessionsState extends Equatable {
   const LotoSessionsState();
@@ -98,36 +102,69 @@ class LotoSessionsCubit extends Cubit<LotoSessionsState> {
     String status = 'All',
   }) async {
     emit(LotoSessionsLoading());
+    
+    // 1. Check Connection explicitly
+    final hasInternet = await NetworkUtils.hasInternetConnection();
+    if (!hasInternet) {
+      emit(const LotoSessionsError("Offline Mode. Using local data if available."));
+      // Ideally here we would try to load local sessions if cached, 
+      // but for now fail gracefully or show empty state if no cache strategy exists here.
+      // Since fetchSessions is primary, we return early to avoid crash.
+      return; 
+    }
+
     try {
-      final sessions = await _repository.fetchSessions(
-        date: date,
-        shift: shift,
-        warehouseCode: warehouseCode,
-        fuelman: fuelman,
-        operatorName: operatorName,
+      await Future<void>(() async {
+        final sessions = await _repository.fetchSessions(
+          date: date,
+          shift: shift,
+          warehouseCode: warehouseCode,
+          fuelman: fuelman,
+          operatorName: operatorName,
+        );
+
+        final remoteCounts = <String, int>{};
+        final localCounts = <String, int>{};
+
+        for (final session in sessions) {
+          remoteCounts[session.nomor] = await _repository.getRemoteRecordCount(
+            session.nomor,
+          );
+          localCounts[session.nomor] = await _repository.getLocalRecordCount(
+            session.nomor,
+          );
+        }
+
+        emit(
+          LotoSessionsLoaded(
+            sessions: sessions,
+            filterDate: date,
+            filterShift: shift,
+            filterWarehouse: warehouseCode,
+            filterFuelman: fuelman,
+            filterOperator: operatorName,
+            filterStatus: status,
+            remoteCounts: remoteCounts,
+            localCounts: localCounts,
+          ),
+        );
+      }).timeout(const Duration(seconds: 10));
+    } on TimeoutException {
+      emit(
+        const LotoSessionsError(
+          "Connection Timeout. Please check your internet.",
+        ),
       );
-
-      final remoteCounts = <String, int>{};
-      final localCounts = <String, int>{};
-
-      for (final session in sessions) {
-        remoteCounts[session.nomor] = await _repository.getRemoteRecordCount(session.nomor);
-        localCounts[session.nomor] = await _repository.getLocalRecordCount(session.nomor);
-      }
-
-      emit(LotoSessionsLoaded(
-        sessions: sessions,
-        filterDate: date,
-        filterShift: shift,
-        filterWarehouse: warehouseCode,
-        filterFuelman: fuelman,
-        filterOperator: operatorName,
-        filterStatus: status,
-        remoteCounts: remoteCounts,
-        localCounts: localCounts,
-      ));
+    } on AuthException catch (e) {
+      emit(LotoSessionsError("Authentication Error: ${e.message}"));
     } catch (e) {
-      emit(LotoSessionsError(e.toString()));
+      final msg = e.toString();
+      if (msg.contains("SocketException") ||
+          msg.contains("AuthRetryableFetchException")) {
+        emit(const LotoSessionsError("Network Error. Check your connection."));
+      } else {
+        emit(LotoSessionsError("Error loading sessions: $msg"));
+      }
     }
   }
 
@@ -176,10 +213,12 @@ class LotoSessionsCubit extends Cubit<LotoSessionsState> {
       newRemoteCounts[sessionNomor] = remote;
       newLocalCounts[sessionNomor] = local;
 
-      emit(currentState.copyWith(
-        remoteCounts: newRemoteCounts,
-        localCounts: newLocalCounts,
-      ));
+      emit(
+        currentState.copyWith(
+          remoteCounts: newRemoteCounts,
+          localCounts: newLocalCounts,
+        ),
+      );
     }
   }
 }

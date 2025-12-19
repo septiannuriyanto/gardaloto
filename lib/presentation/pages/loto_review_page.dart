@@ -24,6 +24,7 @@ import 'package:gardaloto/presentation/widget/loading_dialog.dart';
 import 'package:gardaloto/core/secret.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
+import 'package:gardaloto/presentation/widget/generic_error_view.dart';
 import 'package:shimmer/shimmer.dart';
 
 class LotoReviewPage extends StatelessWidget {
@@ -128,6 +129,18 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
           },
         ),
         actions: [
+          BlocBuilder<LotoCubit, LotoState>(
+            builder: (context, state) {
+              // Refresh Button
+              return IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.white),
+                tooltip: 'Refresh',
+                onPressed: () {
+                   context.read<LotoCubit>().loadReviewSession(widget.session);
+                },
+              );
+            },
+          ),
           BlocBuilder<LotoCubit, LotoState>(
             builder: (context, state) {
               if (state is LotoLoaded) {
@@ -283,7 +296,14 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
             } else if (state is LotoLoading) {
               return _buildSkeletonLoader();
             } else if (state is LotoError) {
-              return Center(child: Text('Error: ${state.message}'));
+               return AppBackground(
+                 child: GenericErrorView(
+                   message: state.message,
+                   onRefresh: () {
+                     context.read<LotoCubit>().loadReviewSession(widget.session);
+                   },
+                 ),
+               );
             }
 
             session ??= widget.session;

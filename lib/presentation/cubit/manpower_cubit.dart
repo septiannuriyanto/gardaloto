@@ -4,6 +4,7 @@ import 'package:gardaloto/domain/entities/manpower_entity.dart';
 import 'package:gardaloto/domain/entities/user_entity.dart';
 import 'package:gardaloto/domain/entities/incumbent_entity.dart';
 import 'package:gardaloto/domain/repositories/manpower_repository.dart';
+import 'package:gardaloto/core/utils/network_utils.dart';
 
 abstract class ManpowerState extends Equatable {
   const ManpowerState();
@@ -47,6 +48,17 @@ class ManpowerCubit extends Cubit<ManpowerState> {
   ManpowerCubit(this.repo) : super(ManpowerInitial());
 
   Future<void> syncAndLoad() async {
+    // 1. Pre-check connection
+    final hasInternet = await NetworkUtils.hasInternetConnection();
+    if (!hasInternet) {
+       await loadLocalOnly();
+       if (state is ManpowerSynced) {
+         final current = state as ManpowerSynced;
+         emit(ManpowerSynced("Offline Mode. Using local data.", current.fuelmen, current.operators));
+       }
+       return;
+    }
+
     emit(ManpowerSyncing());
     try {
       await repo.syncManpower();
@@ -54,17 +66,26 @@ class ManpowerCubit extends Cubit<ManpowerState> {
       final operators = await repo.getOperators();
       emit(ManpowerSynced('Synced successfully', fuelmen, operators));
     } catch (e) {
-      // Even if sync fails, try to load local data
+      // If sync fails, try to load local data
       try {
         final fuelmen = await repo.getFuelmen();
         final operators = await repo.getOperators();
         if (fuelmen.isNotEmpty || operators.isNotEmpty) {
-           emit(ManpowerSynced('Sync failed: $e. Using local data.', fuelmen, operators));
+           final msg = e.toString();
+           final userMsg = (msg.contains("SocketException") || msg.contains("AuthRetryableFetchException")) 
+               ? "Offline mode" 
+               : "Sync failed. Using local data.";
+           emit(ManpowerSynced(userMsg, fuelmen, operators));
            return;
         }
       } catch (_) {}
       
-      emit(ManpowerError(e.toString()));
+      final msg = e.toString();
+      if (msg.contains("SocketException") || msg.contains("AuthRetryableFetchException")) {
+         emit(const ManpowerError("Network Error. Cannot sync manpower."));
+      } else {
+         emit(ManpowerError("Error: $msg"));
+      }
     }
   }
   

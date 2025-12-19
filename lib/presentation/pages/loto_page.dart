@@ -22,6 +22,7 @@ import 'package:gardaloto/presentation/cubit/storage_cubit.dart';
 import 'package:gardaloto/presentation/widget/full_screen_gallery.dart';
 import 'package:gardaloto/presentation/widget/app_background.dart';
 import 'package:gardaloto/presentation/widget/glass_panel.dart';
+import 'package:gardaloto/presentation/widget/generic_error_view.dart';
 import 'package:gardaloto/presentation/widget/glass_fab.dart';
 import 'dart:ui';
 
@@ -348,6 +349,14 @@ class _LotoPageState extends State<LotoPage> {
                   child: CircularProgressIndicator(color: Colors.cyanAccent),
                 );
               }
+              if (state is LotoError) {
+              return GenericErrorView(
+                message: state.message,
+                onRefresh: () {
+                  context.read<LotoCubit>().loadActiveSession();
+                },
+              );
+            }
 
               LotoSession? session;
               List<LotoEntity> records = [];
@@ -487,6 +496,13 @@ class _LotoPageState extends State<LotoPage> {
                                   itemBuilder:
                                       (_, i) => LotoCard(
                                         entity: records[i],
+                                        isProcessing: context
+                                            .read<LotoCubit>()
+                                            .isProcessing(
+                                              records[i]
+                                                  .timestamp
+                                                  .toIso8601String(),
+                                            ),
                                         onImageTap: () {
                                           Navigator.push(
                                             context,
