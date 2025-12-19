@@ -6,6 +6,9 @@ class UserEntity {
   final DateTime? activeDate;
   final int? position;
   final String? sidCode;
+  final String? photoUrl;
+  final String? bgPhotoUrl;
+  final String? positionDescription;
 
   UserEntity({
     required this.id,
@@ -15,5 +18,8 @@ class UserEntity {
     this.activeDate,
     this.position,
     this.sidCode,
+    this.photoUrl,
+    this.bgPhotoUrl,
+    this.positionDescription,
   });
 }

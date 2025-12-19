@@ -4,6 +4,10 @@ import 'package:gardaloto/domain/repositories/auth_repository.dart';
 import 'package:gardaloto/domain/usecases/get_current_user.dart';
 import 'package:gardaloto/domain/usecases/login_user.dart';
 import 'package:gardaloto/domain/usecases/logout_user.dart';
+import 'package:gardaloto/domain/usecases/update_profile_photo.dart';
+import 'package:gardaloto/domain/usecases/delete_profile_photo.dart';
+import 'package:gardaloto/domain/usecases/reset_password.dart';
+import 'package:gardaloto/domain/usecases/update_password.dart';
 import 'package:gardaloto/domain/usecases/send_loto_report.dart';
 import 'package:gardaloto/presentation/cubit/auth_cubit.dart';
 import 'package:gardaloto/presentation/cubit/loto_cubit.dart';
@@ -53,6 +57,10 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton(() => LoginUser(sl<AuthRepository>()));
   sl.registerLazySingleton(() => LogoutUser(sl<AuthRepository>()));
   sl.registerLazySingleton(() => GetCurrentUser(sl<AuthRepository>()));
+  sl.registerLazySingleton(() => UpdateProfilePhoto(sl<AuthRepository>()));
+  sl.registerLazySingleton(() => DeleteProfilePhoto(sl<AuthRepository>()));
+  sl.registerLazySingleton(() => ResetPassword(sl<AuthRepository>()));
+  sl.registerLazySingleton(() => UpdatePassword(sl<AuthRepository>()));
   sl.registerLazySingleton(() => SendLotoReport(sl<LotoRepository>()));
 
   // =========================
@@ -91,6 +99,10 @@ Future<void> initServiceLocator() async {
       loginUser: sl<LoginUser>(),
       logoutUser: sl<LogoutUser>(),
       getCurrentUser: sl<GetCurrentUser>(),
+      updateProfilePhotoUseCase: sl<UpdateProfilePhoto>(),
+      deleteProfilePhotoUseCase: sl<DeleteProfilePhoto>(),
+      resetPasswordUseCase: sl<ResetPassword>(),
+      updatePasswordUseCase: sl<UpdatePassword>(),
     ),
   );
 }

@@ -1,15 +1,18 @@
 import 'dart:convert';
-import 'dart:math';
+
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gardaloto/domain/repositories/loto_repository.dart';
 import 'package:gardaloto/presentation/cubit/dashboard_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class DashboardCubit extends Cubit<DashboardState> {
-  DashboardCubit()
+  final LotoRepository lotoRepo;
+
+  DashboardCubit(this.lotoRepo)
       : super(DashboardState(
           selectedDate: DateTime.now(),
-      selectedShift: 0, // Default to Trend (Average Only)
+          selectedShift: 0, // Default to Trend (Average Only)
         ));
 
   static int _calculateShift(DateTime date) {
@@ -28,24 +31,10 @@ class DashboardCubit extends Cubit<DashboardState> {
     final shouldRefresh = _shouldRefresh(prefs) || force;
     final cachedData = prefs.getString('dashboard_data');
 
-    // If we have cache and don't need refresh, use cache (unless it's empty?)
-    // But wait, if we switch Week/Month, cache might not match current filter.
-    // For simplicity, let's assume 'dashboard_data' stores the FULL DATASET (e.g. Month)
-    // and we filter in memory?
-    // User requested "loading datanya jangan setiap kali...". 
-    // This implies the *network fetch* is what we want to avoid.
-    // Our 'dummy generation' simulates network fetch.
-    
     if (!shouldRefresh && cachedData != null && !force) {
-        // Load from Cache (Simulated)
+        // Load from Cache
         try {
-            // For dummy data, we ignore the actual json content and just regenerate.
-            // In a real app, we would parse `jsonDecode(cachedData)` and emit it.
-            if (silent) {
-                 _generateAndEmit(prefs);
-            } else {
-                 _emitCachedOrFast(prefs, cachedData);
-            }
+            await _emitCached(cachedData);
         } catch (e) {
             // Cache corrupted, fetch
             await _fetchAndSave(prefs);
@@ -56,61 +45,118 @@ class DashboardCubit extends Cubit<DashboardState> {
     }
   }
 
-  Future<void> _emitCachedOrFast(SharedPreferences prefs, String cachedJson) async {
-      // For dummy purposes, we just generate raw data again instantly
-      _generateAndEmit(prefs);
+  Future<void> _emitCached(String cachedJson) async {
+      try {
+        final decoded = jsonDecode(cachedJson) as Map<String, dynamic>;
+        
+        final lotoList = (decoded['loto'] as List?)?.map((e) => e as Map<String, dynamic>).toList() ?? [];
+        final warehouseList = (decoded['warehouse'] as List?)?.map((e) => e as Map<String, dynamic>).toList() ?? [];
+        final nrpList = (decoded['nrp'] as List?)?.map((e) => e as Map<String, dynamic>).toList() ?? [];
+        
+        _processAndEmit(lotoList, warehouseList, nrpList);
+      } catch (e) {
+        print("Error parsing dashboard cache: $e");
+        throw e; // trigger re-fetch
+      }
   }
 
   Future<void> _fetchAndSave(SharedPreferences prefs) async {
-       // Simulate Network Delay
-       await Future.delayed(const Duration(seconds: 1));
-       _generateAndEmit(prefs);
-       
-       // Save timestamp
-       await prefs.setInt('last_dashboard_load', DateTime.now().millisecondsSinceEpoch);
-       // Save "data" (dummy placeholder)
-       await prefs.setString('dashboard_data', '{"dummy": true}'); 
+       try {
+         // Insight 1: Loto Trend
+         final lotoData = await lotoRepo.getAchievementTrend(daysBack: 30);
+         // Insight 2: Warehouse (RPC)
+         final warehouseData = await lotoRepo.getWarehouseAchievement(daysBack: 30);
+         // Insight 3: NRP (RPC)
+         final nrpData = await lotoRepo.getNrpRanking(daysBack: 30);
+         
+         final cacheMap = {
+           'loto': lotoData,
+           'warehouse': warehouseData,
+           'nrp': nrpData,
+         };
+         
+         await prefs.setString('dashboard_data', jsonEncode(cacheMap));
+         await prefs.setInt('last_dashboard_load', DateTime.now().millisecondsSinceEpoch);
+         
+         _processAndEmit(lotoData, warehouseData, nrpData);
+       } catch (e) {
+         print("Error fetching dashboard data: $e");
+         emit(state.copyWith(isLoading: false)); 
+       }
   }
 
-  void _generateAndEmit(SharedPreferences prefs) {
-    final random = Random();
+  void _processAndEmit(
+      List<Map<String, dynamic>> lotoRawData,
+      List<Map<String, dynamic>> warehouseRawData,
+      List<Map<String, dynamic>> nrpRawData,
+  ) {
+    // 1. Process LOTO Data (buckets S1/S2)
     List<Map<String, dynamic>> s1 = [];
     List<Map<String, dynamic>> s2 = [];
     
-    // Loto Achievement Logic
-    int days = 7;
-    // If Month, use full month days. If Week, use 7.
+    int daysToShow = 7;
     if (state.selectedPeriod == DashboardPeriod.month) {
-       days = DateUtils.getDaysInMonth(state.selectedDate.year, state.selectedDate.month);
-    } else {
-       // For week, we assume 7 days.
-       days = 7; 
+       daysToShow = 30; 
     }
     
-    for (int i = 1; i <= days; i++) {
-        s1.add({'day': i, 'count': 50 + random.nextInt(50)}); 
-        s2.add({'day': i, 'count': 40 + random.nextInt(60)});
+    final cutoff = DateTime.now().subtract(Duration(days: daysToShow));
+    final allDates = lotoRawData
+        .map((e) => e['date'] as String)
+        .toSet()
+        .map((e) => DateTime.parse(e))
+        .where((d) => d.isAfter(cutoff))
+        .toList();
+    allDates.sort();
+
+    List<DateTime> dateRange = [];
+    for (int i = daysToShow - 1; i >= 0; i--) {
+      final d = DateTime.now().subtract(Duration(days: i));
+      dateRange.add(DateTime(d.year, d.month, d.day));
     }
+
+    int dayIndex = 1;
+    for (final date in dateRange) {
+        final dateStr = "${date.year}-${date.month.toString().padLeft(2,'0')}-${date.day.toString().padLeft(2,'0')}";
+        
+        // Find S1
+        final entryS1 = lotoRawData.firstWhere(
+            (e) => e['date'] == dateStr && e['shift'] == 1, 
+            orElse: () => <String, dynamic>{},
+        );
+        double valS1 = entryS1.isNotEmpty ? (entryS1['percentage'] as num).toDouble() : 0.0;
+        
+        // Find S2
+        final entryS2 = lotoRawData.firstWhere(
+            (e) => e['date'] == dateStr && e['shift'] == 2, 
+            orElse: () => <String, dynamic>{},
+        );
+        double valS2 = entryS2.isNotEmpty ? (entryS2['percentage'] as num).toDouble() : 0.0;
+        
+        s1.add({'day': dayIndex, 'count': valS1});
+        s2.add({'day': dayIndex, 'count': valS2});
+        dayIndex++;
+    }
+
+    // 2. Process Warehouse Data
+    // RPC returns: warehouse_code, percentage
+    List<Map<String, dynamic>> wData = warehouseRawData.map((e) => {
+      'label': e['warehouse_code'] ?? 'Unknown',
+      'value': (e['percentage'] as num).toDouble(),
+    }).toList();
+    // Sort Descending
+    wData.sort((a, b) => (b['value'] as double).compareTo(a['value'] as double));
     
-    List<Map<String, dynamic>> wData = [
-      {'label': 'WH A', 'value': 85},
-      {'label': 'WH B', 'value': 60},
-      {'label': 'WH C', 'value': 90},
-      {'label': 'WH D', 'value': 45},
-      {'label': 'WH E', 'value': 75},
-    ];
-    // Sort Highest to Lowest
-    wData.sort((a, b) => (b['value'] as int).compareTo(a['value'] as int));
+    // 3. Process NRP Data
+    // RPC returns: nrp, name, percentage, loto_count, verification_count
+    // We display Achievement % directly.
+
+    List<Map<String, dynamic>> nData = nrpRawData.map((e) => {
+      'label': e['name'] ?? e['nrp'] ?? 'Unknown',
+      'value': (e['percentage'] as num).toDouble(),
+    }).toList();
     
-    List<Map<String, dynamic>> nData = [
-      {'label': 'A.S.', 'value': 95},
-      {'label': 'B.K.', 'value': 88},
-      {'label': 'C.D.', 'value': 72},
-      {'label': 'D.E.', 'value': 99},
-      {'label': 'E.F.', 'value': 65},
-    ];
-    // Sort Highest to Lowest
-    nData.sort((a, b) => (b['value'] as int).compareTo(a['value'] as int));
+    // Sort Descending
+    nData.sort((a, b) => (b['value'] as double).compareTo(a['value'] as double));
 
     emit(state.copyWith(
       isLoading: false,
@@ -126,37 +172,47 @@ class DashboardCubit extends Cubit<DashboardState> {
       if (lastLoadMillis == null) return true;
 
       final lastLoad = DateTime.fromMillisecondsSinceEpoch(lastLoadMillis);
-      final now = DateTime.now().toUtc().add(const Duration(hours: 8)); // GMT+8
+      // Ensure we compare in Local Time (GMT+8 assumption by user, using .now() is device time)
+      // If user device is set to Jakarta (GMT+7) but wants GMT+8 rules?
+      // "gunakan lastLotoDataLoaded agar rpc diload setiap jam 6 dan jam 18:00 wita"
+      // WITA is GMT+8.
+      // We will assume device time is WITA or we adjust.
+      // Safer: Use UTC for logic. 06:00 WITA = 22:00 UTC (prev day). 18:00 WITA = 10:00 UTC.
       
-      // Check yesterday 21:00, today 09:00, today 21:00
-      // We need to find the "latest scheduled point" before NOW.
-      // If lastLoad < latestPoint, then Refresh.
+      final nowUtc = DateTime.now().toUtc();
+      final lastUtc = lastLoad.toUtc();
       
-      final today9 = DateTime(now.year, now.month, now.day, 9);
-      final today21 = DateTime(now.year, now.month, now.day, 21);
-      final yesterday21 = today21.subtract(const Duration(days: 1));
-
-      DateTime targetPoint = yesterday21;
-      if (now.isAfter(today21)) {
-          targetPoint = today21;
-      } else if (now.isAfter(today9)) {
-          targetPoint = today9;
+      // Determine the most recent "Checkpoint" (22:00 or 10:00 UTC)
+      // Checkpoints today:
+      final checkpoint1 = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day, 10, 0); // 18:00 WITA
+      final checkpoint2 = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day, 22, 0); // 06:00 WITA (Next day really)
+      // Checkpoints yesterday:
+      final checkpoint1_prev = checkpoint1.subtract(const Duration(days: 1));
+      final checkpoint2_prev = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day - 1, 22, 0); // Yesterday 06:00 WITA? No.
+           
+      // Let's simplify:
+      // We have two daily sync times: 06:00 and 18:00 (Local/WITA).
+      // If `lastLoad` was BEFORE the most recent sync time, and NOW is AFTER it, we refresh.
+      // We need to convert to WITA (UTC+8).
+      final nowWita = nowUtc.add(const Duration(hours: 8));
+      final lastWita = lastUtc.add(const Duration(hours: 8));
+      
+      // Construct today's checkpoints in WITA
+      final today06 = DateTime(nowWita.year, nowWita.month, nowWita.day, 6, 0);
+      final today18 = DateTime(nowWita.year, nowWita.month, nowWita.day, 18, 0);
+      
+      DateTime targetCheckpoint;
+      
+      if (nowWita.isAfter(today18)) {
+        targetCheckpoint = today18; // Latest was today 18:00
+      } else if (nowWita.isAfter(today06)) {
+        targetCheckpoint = today06; // Latest was today 06:00
+      } else {
+        // Before 06:00, so latest was yesterday 18:00
+        targetCheckpoint = today18.subtract(const Duration(days: 1));
       }
-
-      // We need to compare lastLoad (which might be local time converted to millis? 
-      // DateTime.now() is Local. 
-      // User said "semua timezone menggunakan GMT + 8".
-      // Best to standardize storage as UTC or explicit GMT+8.
-      // I'll assume stored millis are consistent (UTC).
       
-      // Let's refactor to ensure consistency.
-      final lastLoadGmt8 = lastLoad.toUtc().add(const Duration(hours: 8));
-      
-      // Actually simpler:
-      // If lastLoad was before Today 9am and now is after Today 9am -> Refresh.
-      // If lastLoad was before Today 9pm and now is after Today 9pm -> Refresh.
-      
-      return lastLoadGmt8.isBefore(targetPoint); 
+      return lastWita.isBefore(targetCheckpoint);
   }
 
   void updateFilter({DateTime? date, int? shift, DashboardPeriod? period}) {

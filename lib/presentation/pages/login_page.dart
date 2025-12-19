@@ -56,7 +56,11 @@ class _LoginPageState extends State<LoginPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.lock_person, size: 64, color: Colors.white),
+                      Image.asset(
+                        'assets/logo.png',
+                        height: 80,
+                        width: 80,
+                      ),
                       const SizedBox(height: 16),
                       const Text(
                         "GardaLoto",
@@ -110,7 +114,20 @@ class _LoginPageState extends State<LoginPage> {
                           fillColor: Colors.white.withOpacity(0.05),
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            context.push('/forgot-password');
+                          },
+                          child: const Text(
+                            "Forgot Password?",
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
 
                       BlocBuilder<AuthCubit, AuthState>(
                         builder: (context, state) {

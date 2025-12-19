@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gardaloto/core/secret.dart';
@@ -21,7 +22,32 @@ void main() async {
   // Ensure all services are registered before running the app.
   await initServiceLocator();
 
-  runApp(const MyApp());
+  runZonedGuarded(() {
+    runApp(const MyApp());
+  }, (error, stack) {
+    if (error is AuthException) {
+      // Catch Supabase Auth exceptions (like expired links) to prevent crash
+      debugPrint('Caught AuthException in zone: ${error.message}');
+      
+      if (error.statusCode == 'otp_expired' || error.message.contains('expired')) {
+        // Show error to user via SnackBar if context is available
+        final context = router.routerDelegate.navigatorKey.currentContext;
+        if (context != null && context.mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('The password reset link has expired. Please request a new one.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
+        return;
+      }
+    }
+    // For other errors, rethrow or log
+    debugPrint('Uncaught error: $error');
+    debugPrint(stack.toString());
+  });
 }
 
 class MyApp extends StatelessWidget {

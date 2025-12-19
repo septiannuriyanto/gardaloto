@@ -10,6 +10,9 @@ class UserModel extends UserEntity {
     super.activeDate,
     super.position,
     super.sidCode,
+    super.photoUrl,
+    super.bgPhotoUrl,
+    super.positionDescription,
   });
 
   factory UserModel.fromSupabase(User user) {
@@ -17,14 +20,25 @@ class UserModel extends UserEntity {
   }
 
   factory UserModel.fromManpower(Map<String, dynamic> json, String authId) {
+    // Handle join data for position description
+    String? posDesc;
+    if (json['incumbent'] != null && json['incumbent'] is Map) {
+      posDesc = json['incumbent']['incumbent'];
+    }
+
     return UserModel(
       id: authId,
       email: json['email'] ?? '',
       nrp: json['nrp'],
       nama: json['nama'],
-      activeDate: json['active_date'] != null ? DateTime.parse(json['active_date']) : null,
+      activeDate: json['active_date'] != null
+          ? DateTime.parse(json['active_date'])
+          : null,
       position: json['position'],
       sidCode: json['sid_code'],
+      photoUrl: json['photo_url'],
+      bgPhotoUrl: json['bg_photo_url'],
+      positionDescription: posDesc,
     );
   }
 
@@ -36,6 +50,9 @@ class UserModel extends UserEntity {
     DateTime? activeDate,
     int? position,
     String? sidCode,
+    String? photoUrl,
+    String? bgPhotoUrl,
+    String? positionDescription,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -45,6 +62,9 @@ class UserModel extends UserEntity {
       activeDate: activeDate ?? this.activeDate,
       position: position ?? this.position,
       sidCode: sidCode ?? this.sidCode,
+      photoUrl: photoUrl ?? this.photoUrl,
+      bgPhotoUrl: bgPhotoUrl ?? this.bgPhotoUrl,
+      positionDescription: positionDescription ?? this.positionDescription,
     );
   }
 
@@ -57,6 +77,9 @@ class UserModel extends UserEntity {
       'active_date': activeDate?.toIso8601String(),
       'position': position,
       'sid_code': sidCode,
+      'photo_url': photoUrl,
+      'bg_photo_url': bgPhotoUrl,
+      'position_desc': positionDescription,
     };
   }
 
@@ -66,9 +89,14 @@ class UserModel extends UserEntity {
       email: json['email'],
       nrp: json['nrp'],
       nama: json['nama'],
-      activeDate: json['active_date'] != null ? DateTime.parse(json['active_date']) : null,
+      activeDate: json['active_date'] != null
+          ? DateTime.parse(json['active_date'])
+          : null,
       position: json['position'],
       sidCode: json['sid_code'],
+      photoUrl: json['photo_url'],
+      bgPhotoUrl: json['bg_photo_url'],
+      positionDescription: json['position_desc'],
     );
   }
 }

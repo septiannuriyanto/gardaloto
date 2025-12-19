@@ -365,4 +365,46 @@ class LotoRepositoryImpl implements LotoRepository {
     }
     return null;
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> getAchievementTrend({int daysBack = 30}) async {
+    try {
+      final data = await _supabaseClient.rpc(
+        'get_loto_achievement_trend',
+        params: {'days_back': daysBack},
+      );
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      print('Error fetching achievement trend: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getWarehouseAchievement({int daysBack = 30}) async {
+    try {
+      final data = await _supabaseClient.rpc(
+        'get_loto_achievement_warehouse',
+        params: {'days_back': daysBack},
+      );
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      print('Error fetching warehouse achievement: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getNrpRanking({int daysBack = 30}) async {
+    try {
+      final data = await _supabaseClient.rpc(
+        'get_loto_ranking_nrp',
+        params: {'days_back': daysBack},
+      );
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      print('Error fetching nrp ranking: $e');
+      return [];
+    }
+  }
 }

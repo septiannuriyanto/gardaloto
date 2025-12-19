@@ -21,6 +21,9 @@ import 'package:gardaloto/presentation/widget/glass_panel.dart';
 import 'package:gardaloto/presentation/widget/glass_fab.dart';
 import 'dart:ui';
 import 'package:gardaloto/presentation/widget/loading_dialog.dart';
+import 'package:gardaloto/core/secret.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 
 class LotoReviewPage extends StatelessWidget {
@@ -32,9 +35,7 @@ class LotoReviewPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider.value(
-          value: sl<LotoCubit>()..loadReviewSession(session),
-        ),
+        BlocProvider.value(value: sl<LotoCubit>()),
         BlocProvider(create: (_) => sl<ManpowerCubit>()..syncAndLoad()),
         BlocProvider(create: (_) => sl<StorageCubit>()..syncAndLoad()),
       ],
@@ -53,6 +54,12 @@ class _LotoReviewView extends StatefulWidget {
 
 class _LotoReviewViewState extends State<_LotoReviewView> {
   final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<LotoCubit>().loadReviewSession(widget.session);
+  }
 
   Future<void> _captureImage(BuildContext context, ImageSource source) async {
     final image = await _picker.pickImage(
@@ -360,6 +367,64 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
                                           fontWeight: FontWeight.w500,
                                           color: Colors.white70,
                                         ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: IconButton(
+                                        padding: EdgeInsets.zero,
+                                        icon: const Icon(
+                                          Icons.share,
+                                          size: 16,
+                                          color: Colors.cyanAccent,
+                                        ),
+                                        tooltip: 'Share via WhatsApp',
+                                        onPressed: () {
+                                          // Calculate counts for share info
+                                          int rCount = 0;
+                                          if (state is LotoLoaded) {
+                                            rCount =
+                                                state.records
+                                                    .where(
+                                                      (r) => r.photoPath
+                                                          .startsWith('http'),
+                                                    )
+                                                    .length;
+                                          } else if (state
+                                              is LotoUploadSuccess) {
+                                            rCount =
+                                                state.records
+                                                    .where(
+                                                      (r) => r.photoPath
+                                                          .startsWith('http'),
+                                                    )
+                                                    .length;
+                                          } else if (state is LotoCapturing) {
+                                            // Fallback, though minimal
+                                            rCount =
+                                                state.records
+                                                    .where(
+                                                      (r) => r.photoPath
+                                                          .startsWith('http'),
+                                                    )
+                                                    .length;
+                                          }
+
+                                          // Manpower names are resolved in parent builder
+                                          final text =
+                                              '*LOTO Session Report*\n\n'
+                                              'Date: ${DateFormat('dd MMM yyyy').format(session!.dateTime.toLocal())}\n'
+                                              'Shift: ${session!.shift}\n'
+                                              'Warehouse: ${session!.warehouseCode}\n'
+                                              'Fuelman: $fuelmanDisplay\n'
+                                              'Operator: $operatorDisplay\n'
+                                              'Code: ${session!.nomor}\n'
+                                              'Evidence Count: $rCount files\n\n'
+                                              'View details: $sessionUrl${session!.nomor}';
+                                          Share.share(text);
+                                        },
                                       ),
                                     ),
                                   ],
@@ -929,7 +994,12 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
   Widget _buildSkeletonLoader() {
     return AppBackground(
       child: Padding(
-        padding: const EdgeInsets.only(top: 80, left: 16, right: 16, bottom: 16),
+        padding: const EdgeInsets.only(
+          top: 80,
+          left: 16,
+          right: 16,
+          bottom: 16,
+        ),
         child: Column(
           children: [
             Shimmer.fromColors(
@@ -953,11 +1023,12 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
                   mainAxisSpacing: 4,
                 ),
                 itemCount: 12,
-                itemBuilder: (_, __) => Shimmer.fromColors(
-                  baseColor: Colors.white.withOpacity(0.1),
-                  highlightColor: Colors.white.withOpacity(0.05),
-                  child: Container(color: Colors.white.withOpacity(0.1)),
-                ),
+                itemBuilder:
+                    (_, __) => Shimmer.fromColors(
+                      baseColor: Colors.white.withOpacity(0.1),
+                      highlightColor: Colors.white.withOpacity(0.05),
+                      child: Container(color: Colors.white.withOpacity(0.1)),
+                    ),
               ),
             ),
           ],

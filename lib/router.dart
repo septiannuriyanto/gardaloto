@@ -8,23 +8,57 @@ import 'package:gardaloto/presentation/widget/capture_form_page.dart';
 import 'package:gardaloto/domain/entities/loto_session.dart';
 
 import 'package:gardaloto/presentation/pages/ready_to_work_page.dart';
+import 'package:gardaloto/presentation/pages/forgot_password_page.dart';
+import 'package:gardaloto/presentation/pages/update_password_page.dart';
+import 'package:gardaloto/presentation/pages/reset_callback_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gardaloto/core/service_locator.dart';
 import 'package:gardaloto/presentation/cubit/manpower_cubit.dart';
 import 'package:gardaloto/presentation/cubit/storage_cubit.dart';
 import 'package:gardaloto/presentation/cubit/loto_cubit.dart';
+import 'package:gardaloto/presentation/pages/account_page.dart';
 import 'package:go_router/go_router.dart';
 
 final router = GoRouter(
   initialLocation: '/',
   debugLogDiagnostics: true,
   routes: [
+    GoRoute(
+      path: '/reset-callback',
+      name: 'reset_callback',
+      builder: (_, state) {
+        final error = state.uri.queryParameters['error'];
+        final errorDescription = state.uri.queryParameters['error_description'];
+        return ResetCallbackPage(
+          error: error,
+          errorDescription: errorDescription,
+        );
+      },
+    ),
+
     GoRoute(path: '/', name: 'auth_gate', builder: (_, __) => const AuthGate()),
+    GoRoute(
+      path: '/forgot-password',
+      name: 'forgot_password',
+      builder: (_, __) => const ForgotPasswordPage(),
+    ),
+    GoRoute(
+      path: '/update-password',
+      name: 'update_password',
+      builder: (_, __) => const UpdatePasswordPage(),
+    ),
+
+
 
     GoRoute(
       path: '/dashboard',
       name: 'dashboard',
       builder: (_, __) => const DashboardPage(),
+    ),
+    GoRoute(
+      path: '/account',
+      name: 'account',
+      builder: (_, __) => const AccountPage(),
     ),
     GoRoute(
       path: '/loto',

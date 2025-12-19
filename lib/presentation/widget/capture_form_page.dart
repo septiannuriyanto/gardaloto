@@ -186,17 +186,11 @@ class _CaptureFormPageState extends State<CaptureFormPage> {
     return BlocProvider(
       create: (context) => sl<UnitCubit>()..loadUnits(),
       child: PopScope(
-        canPop: false,
+        canPop: true,
         onPopInvoked: (didPop) async {
-          if (didPop) return;
-          final cubit = context.read<LotoCubit>();
-          cubit.cancelCapture();
-          if (context.mounted) {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/loto/entry');
-            }
+          if (didPop) {
+            final cubit = context.read<LotoCubit>();
+            cubit.cancelCapture();
           }
         },
         child: Builder(
@@ -355,10 +349,10 @@ class _CaptureFormPageState extends State<CaptureFormPage> {
                 leading: IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
                   onPressed: () {
-                    context.read<LotoCubit>().cancelCapture(); // Reset state
                     if (context.canPop()) {
                       context.pop();
                     } else {
+                      context.read<LotoCubit>().cancelCapture();
                       context.go('/loto/entry');
                     }
                   },

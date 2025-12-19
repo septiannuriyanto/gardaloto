@@ -41,7 +41,11 @@ class Sidebar extends StatelessWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.shield, size: 48, color: Colors.cyanAccent),
+                            Image.asset(
+                              'assets/logo.png',
+                              height: 64,
+                              width: 64,
+                            ),
                             const SizedBox(height: 12),
                             const Text(
                               'GardaLoto',
@@ -59,8 +63,26 @@ class Sidebar extends StatelessWidget {
                 ),
                 const Divider(color: Colors.white24),
                 ListTile(
+                  leading: const Icon(Icons.person, color: Colors.white),
+                  title: const Text(
+                    'Account',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Future.delayed(const Duration(milliseconds: 250), () {
+                      if (context.mounted) {
+                        context.pushNamed('account');
+                      }
+                    });
+                  },
+                ),
+                ListTile(
                   leading: const Icon(Icons.logout, color: Colors.redAccent),
-                  title: const Text('Logout', style: TextStyle(color: Colors.redAccent)),
+                  title: const Text(
+                    'Logout',
+                    style: TextStyle(color: Colors.redAccent),
+                  ),
                   onTap: () {
                     Navigator.pop(context); // Close drawer
                     Future.delayed(const Duration(milliseconds: 250), () {

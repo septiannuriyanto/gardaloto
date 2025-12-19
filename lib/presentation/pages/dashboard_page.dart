@@ -1,4 +1,6 @@
 import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:photo_view/photo_view.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,6 +11,8 @@ import 'package:gardaloto/presentation/cubit/dashboard_state.dart';
 import 'package:gardaloto/presentation/widget/sidebar.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:gardaloto/core/service_locator.dart';
+import 'package:gardaloto/domain/repositories/loto_repository.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -16,7 +20,7 @@ class DashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => DashboardCubit()..loadData(),
+      create: (context) => DashboardCubit(sl<LotoRepository>())..loadData(),
       child: const _DashboardView(),
     );
   }
@@ -107,10 +111,6 @@ class _DashboardViewState extends State<_DashboardView> {
                   _buildSelectors(context),
                   const SizedBox(height: 24),
 
-                  // Universal Period Switcher (Glass Style)
-                  _buildPeriodSwitcher(context),
-                  const SizedBox(height: 16),
-
                   // Charts
                   _buildLotoChart(context),
                   const SizedBox(height: 24),
@@ -158,37 +158,89 @@ class _DashboardViewState extends State<_DashboardView> {
     );
   }
 
+  void _viewPhoto(String url) {
+    if (url.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent, 
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          body: PhotoView(
+            imageProvider: CachedNetworkImageProvider(url),
+            heroAttributes: const PhotoViewHeroAttributes(tag: 'dashboard_avatar_view'),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeader(BuildContext context) {
     return BlocBuilder<AuthCubit, AuthState>(
       builder: (context, state) {
         String name = 'User';
         String nrp = '-';
         String position = '-';
+        String? photoUrl;
+
         if (state is AuthAuthenticated) {
           name = state.user.nama ?? 'User';
           nrp = state.user.nrp!;
-          position = 'Position ${state.user.position}';
+          // Use description if available
+          position = state.user.positionDescription ?? 'Position ${state.user.position}';
+          photoUrl = state.user.photoUrl;
         }
-        // Header can be a distinct Glass Panel or just "Floating" text
-        // Let's make it a nice Glass Card
         return _buildGlassPanel(
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: Colors.white.withOpacity(0.2),
-                child: const Icon(Icons.person, color: Colors.white, size: 28),
+              GestureDetector(
+                onTap: () {
+                  if (photoUrl != null && photoUrl.isNotEmpty) {
+                    _viewPhoto(photoUrl);
+                  }
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white.withOpacity(0.2), width: 2),
+                  ),
+                  child: CircleAvatar(
+                    radius: 24,
+                    backgroundColor: Colors.white.withOpacity(0.1),
+                    child: ClipOval(
+                      child: photoUrl != null && photoUrl.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: photoUrl,
+                              fit: BoxFit.cover,
+                              width: 48,
+                              height: 48,
+                              placeholder: (context, url) => Container(color: Colors.white10),
+                              errorWidget: (context, url, error) => const Icon(Icons.person, color: Colors.white),
+                            )
+                          : const Icon(Icons.person, color: Colors.white, size: 28),
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const Text(
+                      'Welcome,',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
                     Text(
-                      'Welcome, $name',
+                      name,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                       maxLines: 1,
@@ -214,52 +266,39 @@ class _DashboardViewState extends State<_DashboardView> {
     );
   }
 
-  // Need to update Text colors inside charts to WHITE if background is DARK
-  // Since I chose a Dark Gradient (Navy/Blue), text MUST be white.
-
   Widget _buildSelectors(BuildContext context) {
     return BlocBuilder<DashboardCubit, DashboardState>(
       builder: (context, state) {
         return Row(
           children: [
+            // Period Switcher (Replaces Date Picker)
             Expanded(
-              child: GestureDetector(
-                onTap: () async {
-                  // Date Picker
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: state.selectedDate,
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2100),
-                  );
-                  if (picked != null)
-                    context.read<DashboardCubit>().updateFilter(date: picked);
-                },
-                child: _buildGlassPanel(
+              child: _buildGlassPanel(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+                    horizontal: 4,
+                    vertical: 4,
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
-                        Icons.calendar_today,
-                        size: 16,
-                        color: Colors.white,
+                      Expanded(
+                        child: _periodButton(
+                          context,
+                          'Week',
+                          DashboardPeriod.week,
+                          state.selectedPeriod,
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        DateFormat('dd MMM yyyy').format(state.selectedDate),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.white,
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: _periodButton(
+                          context,
+                          'Month',
+                          DashboardPeriod.month,
+                          state.selectedPeriod,
                         ),
                       ),
                     ],
-                  ),
-                ),
-              ),
+                  )),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -299,38 +338,7 @@ class _DashboardViewState extends State<_DashboardView> {
   }
 
   // ... (Period Switcher Unchanged) ...
-  Widget _buildPeriodSwitcher(BuildContext context) {
-    return BlocBuilder<DashboardCubit, DashboardState>(
-      builder: (context, state) {
-        return Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.2), // Darker track
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _periodButton(
-                context,
-                'Week',
-                DashboardPeriod.week,
-                state.selectedPeriod,
-              ),
-              const SizedBox(width: 4),
-              _periodButton(
-                context,
-                'Month',
-                DashboardPeriod.month,
-                state.selectedPeriod,
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+
 
   Widget _periodButton(
     BuildContext context,
@@ -343,7 +351,8 @@ class _DashboardViewState extends State<_DashboardView> {
       onTap: () => context.read<DashboardCubit>().updateFilter(period: value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color:
               isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
@@ -354,6 +363,7 @@ class _DashboardViewState extends State<_DashboardView> {
           style: TextStyle(
             color: isSelected ? Colors.white : Colors.white60,
             fontWeight: FontWeight.bold,
+            fontSize: 12,
           ),
         ),
       ),
@@ -756,85 +766,86 @@ class _DashboardViewState extends State<_DashboardView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Achievement By NRP',
+                'Achievement by Fuelman',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               ...state.nrpData.asMap().entries.map((entry) {
-                final index = entry.key;
                 final item = entry.value;
                 final label = item['label'];
                 final value = (item['value'] as num).toDouble();
+                final displayValue = item.containsKey('display_count') 
+                    ? '${item['display_count']} Sessions' 
+                    : '${value.toInt()}%';
 
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: Row(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(
-                        width: 40,
-                        child: Text(
-                          label,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: Colors.white,
+                      // Header Row: Name & Value
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              label,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: Colors.white,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
+                          Text(
+                            displayValue,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Stack(
-                          children: [
-                            Container(
+                      const SizedBox(height: 8),
+                      // Progress Bar
+                      Stack(
+                        children: [
+                          Container(
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          FractionallySizedBox(
+                            widthFactor: (value / 100).clamp(0.0, 1.0),
+                            child: Container(
                               height: 12,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                            ),
-                            FractionallySizedBox(
-                              widthFactor: value / 100, // 0..1
-                              child: Container(
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  // Gradient bar
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Colors.purpleAccent,
-                                      Colors.deepPurpleAccent,
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(6),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.purpleAccent.withOpacity(
-                                        0.4,
-                                      ),
-                                      blurRadius: 6,
-                                    ),
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Colors.purpleAccent,
+                                    Colors.deepPurpleAccent,
                                   ],
                                 ),
+                                borderRadius: BorderRadius.circular(6),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.purpleAccent.withOpacity(0.4),
+                                    blurRadius: 6,
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      SizedBox(
-                        width: 40,
-                        child: Text(
-                          '${value.toInt()}%',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
                           ),
-                          textAlign: TextAlign.end,
-                        ),
+                        ],
                       ),
                     ],
                   ),

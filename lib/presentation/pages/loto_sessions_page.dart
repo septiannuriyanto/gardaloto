@@ -14,6 +14,8 @@ import 'package:gardaloto/presentation/widget/app_background.dart';
 import 'package:gardaloto/presentation/widget/glass_panel.dart';
 import 'package:gardaloto/presentation/widget/glass_fab.dart';
 import 'package:intl/intl.dart';
+import 'package:gardaloto/core/secret.dart';
+import 'package:share_plus/share_plus.dart';
 
 class LotoSessionsPage extends StatelessWidget {
   const LotoSessionsPage({super.key});
@@ -438,21 +440,48 @@ class _LotoSessionsViewState extends State<_LotoSessionsView> {
                                                       );
                                                     },
                                                   ),
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.white.withOpacity(0.1),
-                                                      borderRadius: BorderRadius.circular(6),
-                                                    ),
-                                                    child: Text(
-                                                      session.nomor,
-                                                      style: const TextStyle(
-                                                        fontSize: 12,
-                                                        fontFamily: 'monospace',
-                                                        fontWeight: FontWeight.w500,
-                                                        color: Colors.white70,
+                                                  Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.white.withOpacity(0.1),
+                                                          borderRadius: BorderRadius.circular(6),
+                                                        ),
+                                                        child: Text(
+                                                          session.nomor,
+                                                          style: const TextStyle(
+                                                            fontSize: 12,
+                                                            fontFamily: 'monospace',
+                                                            fontWeight: FontWeight.w500,
+                                                            color: Colors.white70,
+                                                          ),
+                                                        ),
                                                       ),
-                                                    ),
+                                                      const SizedBox(width: 8),
+                                                      SizedBox(
+                                                        width: 24,
+                                                        height: 24,
+                                                        child: IconButton(
+                                                          padding: EdgeInsets.zero,
+                                                          icon: const Icon(Icons.share, size: 16, color: Colors.cyanAccent),
+                                                          tooltip: 'Share via WhatsApp',
+                                                          onPressed: () {
+                                                            final text = '*LOTO Session Report*\n\n'
+                                                                'Date: ${DateFormat('dd MMM yyyy').format(session.dateTime.toLocal())}\n'
+                                                                'Shift: ${session.shift}\n'
+                                                                'Warehouse: ${session.warehouseCode}\n'
+                                                                'Fuelman: $fuelmanDisplay\n'
+                                                                'Operator: $operatorDisplay\n'
+                                                                'Code: ${session.nomor}\n'
+                                                                'Evidence Count: $remoteCount files\n\n'
+                                                                'View details: $sessionUrl${session.nomor}';
+                                                            Share.share(text);
+                                                          },
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
                                                 ],
                                               ),

@@ -129,22 +129,34 @@ class PhotoOverlay extends StatelessWidget {
           ),
         ),
         Positioned(
-          top: 16, // Padding from top
-          right: 16, // Padding from right
-          child: Text(
-            "Garda LOTO",
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w200,
-              fontSize: 12,
-              shadows: [
-                Shadow(
-                  offset: Offset(1, 1),
-                  blurRadius: 3,
-                  color: Colors.black.withOpacity(0.5),
+          top: 16,
+          right: 16,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                "Garda LOTO",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w200,
+                  fontSize: 12,
+                  shadows: [
+                    Shadow(
+                      offset: const Offset(1, 1),
+                      blurRadius: 3,
+                      color: Colors.black.withOpacity(0.5),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              Image.asset(
+                'assets/logo.png',
+                height: 24,
+                width: 24,
+              ),
+            ],
           ),
         ),
       ],
