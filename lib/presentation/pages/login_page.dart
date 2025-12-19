@@ -6,6 +6,7 @@ import 'package:gardaloto/presentation/cubit/auth_state.dart';
 import 'package:gardaloto/presentation/widget/app_background.dart';
 import 'package:gardaloto/presentation/widget/glass_panel.dart';
 import 'dart:ui';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,9 +15,27 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
+// ...
+
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _nrpCtrl = TextEditingController();
   final TextEditingController _passwordCtrl = TextEditingController();
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _version = info.version;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -56,16 +75,26 @@ class _LoginPageState extends State<LoginPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Image.asset(
-                        'assets/logo.png',
-                        height: 80,
-                        width: 80,
-                      ),
+                      Image.asset('assets/logo.png', height: 80, width: 80),
                       const SizedBox(height: 16),
                       const Text(
-                        "GardaLoto",
-                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                        "Garda LOTO",
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
+                      const SizedBox(height: 4),
+                      if (_version.isNotEmpty)
+                        Text(
+                          "v$_version",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.cyanAccent,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
                       const SizedBox(height: 8),
                       const Text(
                         "Login to continue",
@@ -79,13 +108,20 @@ class _LoginPageState extends State<LoginPage> {
                         decoration: InputDecoration(
                           labelText: "NRP",
                           labelStyle: const TextStyle(color: Colors.white70),
-                          prefixIcon: const Icon(Icons.badge, color: Colors.white70),
+                          prefixIcon: const Icon(
+                            Icons.badge,
+                            color: Colors.white70,
+                          ),
                           enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                            borderSide: BorderSide(
+                              color: Colors.white.withOpacity(0.3),
+                            ),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderSide: const BorderSide(color: Colors.cyanAccent),
+                            borderSide: const BorderSide(
+                              color: Colors.cyanAccent,
+                            ),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           filled: true,
@@ -101,13 +137,20 @@ class _LoginPageState extends State<LoginPage> {
                         decoration: InputDecoration(
                           labelText: "Password",
                           labelStyle: const TextStyle(color: Colors.white70),
-                          prefixIcon: const Icon(Icons.lock, color: Colors.white70),
-                           enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                          prefixIcon: const Icon(
+                            Icons.lock,
+                            color: Colors.white70,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Colors.white.withOpacity(0.3),
+                            ),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderSide: const BorderSide(color: Colors.cyanAccent),
+                            borderSide: const BorderSide(
+                              color: Colors.cyanAccent,
+                            ),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           filled: true,
@@ -132,7 +175,9 @@ class _LoginPageState extends State<LoginPage> {
                       BlocBuilder<AuthCubit, AuthState>(
                         builder: (context, state) {
                           if (state is AuthLoading) {
-                            return const CircularProgressIndicator(color: Colors.cyanAccent);
+                            return const CircularProgressIndicator(
+                              color: Colors.cyanAccent,
+                            );
                           }
 
                           return SizedBox(
@@ -147,11 +192,21 @@ class _LoginPageState extends State<LoginPage> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.cyanAccent.shade700,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                                 elevation: 0,
                               ),
-                              child: const Text("LOGIN", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              child: const Text(
+                                "LOGIN",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           );
                         },

@@ -1,35 +1,65 @@
-# gardaloto
+# Garda LOTO
 
-A new Flutter project.
+App to Track Fuelman Activity of Performing LOTO (Lock Out, Tag Out) isolation to mining equipment before conducting refueling activity.
+
+## Features
+
+- **Authentication**:
+  - Login with NRP and Password.
+  - Forgot Password flow.
+  - Role-based access (Admin, Fuelman, Vendor, Guest).
+- **User Management**:
+  - Add, View, Edit LOTO users.
+  - Role assignment and password management.
+- **LOTO Capture**:
+  - Image capture with watermark overlay.
+  - **Watermark Details**: Time, GPS Coordinates, NRP, Unit Code, and Logo.
+  - Offline support using Hive for local storage.
+- **Dashboards**:
+  - **Fuelman Data**: Track achievements and history.
+  - **Admin Dashboard**: Overview of system activity.
+- **Account Customization**:
+  - Dynamic background gradient based on user photo.
+  - Profile photo management.
+- **Offline Capability**:
+  - Hive-based local storage for LOTO records.
+
+## Tech Stack
+
+- **Framework**: Flutter
+- **Language**: Dart
+- **Backend/Database**: Supabase
+- **Local Storage**: Hive
+- **State Management**: Bloc (Cubit)
+- **Routing**: GoRouter
+- **Other Key Packages**:
+  - `package_info_plus` (Version display)
+  - `palette_generator` (Dynamic UI colors)
+  - `cached_network_image` (Image optimization)
+  - `geolocator` (GPS fetching)
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+### Prerequisites
 
-A few resources to get you started if this is your first Flutter project:
+- Flutter SDK (>=3.7.2)
+- Supabase Project Credentials
 
+### Installation
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1.  Clone the repository.
+2.  Install dependencies:
+    ```bash
+    flutter pub get
+    ```
+3.  Run the app:
+    ```bash
+    flutter run
+    ```
 
-## Watermark customization (how to test)
+## Usage
 
-You can edit the watermark lines for each capture in the Capture dialog:
-
-- Take a photo and open the capture dialog.
-- Expand "Watermark (customize lines)" and edit any of the four lines (Line 1..4).
-- If a line is left empty, the app will fall back to a sensible default (NRP, Unit, GPS, Time).
-- Press Submit — a new watermarked image file is written next to the original (suffix `_wm.png`) and the saved record will reference the watermarked path.
-
-If you want global, persistent defaults, I can add an app-wide Settings page to store them.
-
-## Persistence and delete (how to test)
-
-The app now saves LOTO records locally using Hive. To verify:
-
-- Submit a LOTO record (via capture dialog or fullscreen form). You should see a SnackBar confirming the saved watermarked filename.
-- The saved record persists across app restarts and appears in the list.
-- To delete a record: tap the trash icon on the list item and confirm the dialog. This removes the record and attempts to delete the saved image file from disk.
-
-The list thumbnails are shown with rounded corners (`ClipRRect`) and support tap-to-zoom with pinch/drag.
+### Watermark Customization
+- The watermark is automatically generated upon photo capture.
+- It includes the current timestamp, GPS location, user NRP, and Unit Code.
+- Uses `image_utils.dart` to composite the overlay.

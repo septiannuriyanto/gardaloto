@@ -8,6 +8,7 @@ import 'package:gardaloto/presentation/cubit/auth_cubit.dart';
 import 'package:gardaloto/presentation/cubit/auth_state.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:gardaloto/core/service_locator.dart'; // For accessing dependencies if needed, but Cubit is enough
@@ -24,16 +25,28 @@ class AccountPage extends StatefulWidget {
 class _AccountPageState extends State<AccountPage> {
   List<Color> _gradientColors = [];
   String? _currentBgUrl;
+  String _version = '';
 
   @override
   void initState() {
     super.initState();
     _gradientColors = _generateRandomGradient();
-    
+
     // Initial check if user is loaded
     final state = context.read<AuthCubit>().state;
     if (state is AuthAuthenticated) {
       _updatePalette(state.user.bgPhotoUrl);
+    }
+
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _version = info.version;
+      });
     }
   }
 
@@ -44,10 +57,10 @@ class _AccountPageState extends State<AccountPage> {
     _currentBgUrl = url;
 
     if (url == null || url.isEmpty) {
-        // Revert to random or keep current? 
-        // User might want to revert to default if they remove photo.
-        // But if they just entered, random is fine.
-        return;
+      // Revert to random or keep current?
+      // User might want to revert to default if they remove photo.
+      // But if they just entered, random is fine.
+      return;
     }
 
     try {
@@ -55,7 +68,7 @@ class _AccountPageState extends State<AccountPage> {
         CachedNetworkImageProvider(url),
         maximumColorCount: 20,
       );
-      
+
       if (!mounted) return;
 
       Color? dominant = palette.dominantColor?.color;
@@ -65,37 +78,41 @@ class _AccountPageState extends State<AccountPage> {
 
       // Logic to pick harmonious gradient
       // We want a dark-ish background usually.
-      
+
       List<Color> newColors = [];
-      
+
       if (dominant != null && darkVibrant != null) {
-         newColors = [dominant, darkVibrant];
+        newColors = [dominant, darkVibrant];
       } else if (dominant != null) {
-         newColors = [dominant, dominant.withValues(alpha: 0.6)]; // Darker shade?
+        newColors = [
+          dominant,
+          dominant.withValues(alpha: 0.6),
+        ]; // Darker shade?
       } else if (darkMuted != null) {
-         newColors = [darkMuted, Colors.black];
+        newColors = [darkMuted, Colors.black];
       }
-      
+
       // Ensure it's not too bright if we want dark theme consistency?
-      // Use HSL to darken if needed? 
+      // Use HSL to darken if needed?
       // For now, let's just use what we found but darken them for background use.
-      
+
       if (newColors.isNotEmpty) {
-          setState(() {
-            _gradientColors = newColors.map((c) {
-               // Make sure it's not too bright. 
-               final hsl = HSLColor.fromColor(c);
-               if (hsl.lightness > 0.4) {
-                 return hsl.withLightness(0.2).toColor(); // Darken it
-               }
-               return c;
-            }).toList();
-             
-             // Ensure at least 2 colors for gradient
-             if (_gradientColors.length == 1) {
-                _gradientColors.add(Colors.black);
-             }
-          });
+        setState(() {
+          _gradientColors =
+              newColors.map((c) {
+                // Make sure it's not too bright.
+                final hsl = HSLColor.fromColor(c);
+                if (hsl.lightness > 0.4) {
+                  return hsl.withLightness(0.2).toColor(); // Darken it
+                }
+                return c;
+              }).toList();
+
+          // Ensure at least 2 colors for gradient
+          if (_gradientColors.length == 1) {
+            _gradientColors.add(Colors.black);
+          }
+        });
       }
     } catch (e) {
       print('Error generating palette: $e');
@@ -267,7 +284,7 @@ class _AccountPageState extends State<AccountPage> {
     return BlocConsumer<AuthCubit, AuthState>(
       listener: (context, state) {
         if (state is AuthAuthenticated) {
-           _updatePalette(state.user.bgPhotoUrl);
+          _updatePalette(state.user.bgPhotoUrl);
         }
       },
       builder: (context, state) {
@@ -317,7 +334,9 @@ class _AccountPageState extends State<AccountPage> {
 
               // Loading Indicator
               if (state is AuthLoading)
-                const Center(child: CircularProgressIndicator(color: Colors.white)),
+                const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
 
               // LAYER 2: Scrollable Content
               Positioned.fill(
@@ -339,38 +358,70 @@ class _AccountPageState extends State<AccountPage> {
                                     right: 0,
                                     height: topHeight,
                                     child: GestureDetector(
-                                      onTap: () => _showPhotoOptions(bgPhotoUrl, true),
+                                      onTap:
+                                          () => _showPhotoOptions(
+                                            bgPhotoUrl,
+                                            true,
+                                          ),
                                       child: Container(
                                         decoration: BoxDecoration(
-                                          color: bgPhotoUrl != null && bgPhotoUrl!.isNotEmpty
-                                              ? Colors.black
-                                              : Colors.white.withOpacity(0.1),
-                                          image: bgPhotoUrl != null && bgPhotoUrl!.isNotEmpty
-                                              ? DecorationImage(
-                                                  image: CachedNetworkImageProvider(bgPhotoUrl!),
-                                                  fit: BoxFit.cover,
-                                                )
-                                              : null,
-                                          border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.1))),
+                                          color:
+                                              bgPhotoUrl != null &&
+                                                      bgPhotoUrl!.isNotEmpty
+                                                  ? Colors.black
+                                                  : Colors.white.withOpacity(
+                                                    0.1,
+                                                  ),
+                                          image:
+                                              bgPhotoUrl != null &&
+                                                      bgPhotoUrl!.isNotEmpty
+                                                  ? DecorationImage(
+                                                    image:
+                                                        CachedNetworkImageProvider(
+                                                          bgPhotoUrl!,
+                                                        ),
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                  : null,
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: Colors.white.withOpacity(
+                                                0.1,
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                        child: bgPhotoUrl == null || bgPhotoUrl!.isEmpty
-                                            ? Center(
-                                                child: Column(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Icon(Icons.add_a_photo, 
-                                                      color: Colors.white.withOpacity(0.5), size: 32),
-                                                    const SizedBox(height: 8),
-                                                    Text("Add Cover Photo", 
-                                                      style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12))
-                                                  ],
-                                                ),
-                                              )
-                                            : null,
+                                        child:
+                                            bgPhotoUrl == null ||
+                                                    bgPhotoUrl!.isEmpty
+                                                ? Center(
+                                                  child: Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Icon(
+                                                        Icons.add_a_photo,
+                                                        color: Colors.white
+                                                            .withOpacity(0.5),
+                                                        size: 32,
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      Text(
+                                                        "Add Cover Photo",
+                                                        style: TextStyle(
+                                                          color: Colors.white
+                                                              .withOpacity(0.5),
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                                : null,
                                       ),
                                     ),
                                   ),
-                                  
+
                                   // 2. Avatar
                                   Positioned(
                                     left: 0,
@@ -378,17 +429,24 @@ class _AccountPageState extends State<AccountPage> {
                                     bottom: 0,
                                     child: Center(
                                       child: GestureDetector(
-                                        onTap: () => _showPhotoOptions(photoUrl, false),
+                                        onTap:
+                                            () => _showPhotoOptions(
+                                              photoUrl,
+                                              false,
+                                            ),
                                         child: Hero(
                                           tag: 'profile-avatar',
                                           child: Container(
                                             padding: const EdgeInsets.all(4),
                                             decoration: BoxDecoration(
                                               shape: BoxShape.circle,
-                                              color: Colors.white.withOpacity(0.2), // Ring
+                                              color: Colors.white.withOpacity(
+                                                0.2,
+                                              ), // Ring
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: Colors.black.withOpacity(0.3),
+                                                  color: Colors.black
+                                                      .withOpacity(0.3),
                                                   blurRadius: 10,
                                                   offset: const Offset(0, 5),
                                                 ),
@@ -398,22 +456,51 @@ class _AccountPageState extends State<AccountPage> {
                                               radius: avatarRadius,
                                               backgroundColor: Colors.grey[800],
                                               child: ClipOval(
-                                                child: photoUrl != null && photoUrl!.isNotEmpty
-                                                    ? CachedNetworkImage(
-                                                        imageUrl: photoUrl!,
-                                                        width: avatarRadius * 2,
-                                                        height: avatarRadius * 2,
-                                                        fit: BoxFit.cover,
-                                                        placeholder: (context, url) =>
-                                                            Shimmer.fromColors(
-                                                          baseColor: Colors.grey[700]!,
-                                                          highlightColor: Colors.grey[500]!,
-                                                          child: Container(color: Colors.white),
+                                                child:
+                                                    photoUrl != null &&
+                                                            photoUrl!.isNotEmpty
+                                                        ? CachedNetworkImage(
+                                                          imageUrl: photoUrl!,
+                                                          width:
+                                                              avatarRadius * 2,
+                                                          height:
+                                                              avatarRadius * 2,
+                                                          fit: BoxFit.cover,
+                                                          placeholder:
+                                                              (
+                                                                context,
+                                                                url,
+                                                              ) => Shimmer.fromColors(
+                                                                baseColor:
+                                                                    Colors
+                                                                        .grey[700]!,
+                                                                highlightColor:
+                                                                    Colors
+                                                                        .grey[500]!,
+                                                                child: Container(
+                                                                  color:
+                                                                      Colors
+                                                                          .white,
+                                                                ),
+                                                              ),
+                                                          errorWidget:
+                                                              (
+                                                                context,
+                                                                url,
+                                                                err,
+                                                              ) => const Icon(
+                                                                Icons.person,
+                                                                size: 60,
+                                                                color:
+                                                                    Colors
+                                                                        .white,
+                                                              ),
+                                                        )
+                                                        : const Icon(
+                                                          Icons.person,
+                                                          size: 60,
+                                                          color: Colors.white,
                                                         ),
-                                                        errorWidget: (context, url, err) =>
-                                                             const Icon(Icons.person, size: 60, color: Colors.white),
-                                                      )
-                                                    : const Icon(Icons.person, size: 60, color: Colors.white),
                                               ),
                                             ),
                                           ),
@@ -424,9 +511,9 @@ class _AccountPageState extends State<AccountPage> {
                                 ],
                               ),
                             ),
-                            
+
                             const SizedBox(height: 16),
-                            
+
                             // Content Below
                             Text(
                               name,
@@ -434,7 +521,13 @@ class _AccountPageState extends State<AccountPage> {
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
-                                shadows: [Shadow(color: Colors.black54, blurRadius: 4, offset: Offset(0, 2))],
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black54,
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -446,18 +539,32 @@ class _AccountPageState extends State<AccountPage> {
                               ),
                               textAlign: TextAlign.center,
                             ),
-                            
+
                             const SizedBox(height: 24),
-                            const Divider(color: Colors.white24, indent: 32, endIndent: 32),
+                            const Divider(
+                              color: Colors.white24,
+                              indent: 32,
+                              endIndent: 32,
+                            ),
                             const SizedBox(height: 16),
-                            
+
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24.0,
+                              ),
                               child: Column(
                                 children: [
-                                   _buildDetailRow(Icons.badge, 'NRP', nrp),
-                                   _buildDetailRow(Icons.work, 'Position', position),
-                                   _buildDetailRow(Icons.fingerprint, 'SID Code', sid),
+                                  _buildDetailRow(Icons.badge, 'NRP', nrp),
+                                  _buildDetailRow(
+                                    Icons.work,
+                                    'Position',
+                                    position,
+                                  ),
+                                  _buildDetailRow(
+                                    Icons.fingerprint,
+                                    'SID Code',
+                                    sid,
+                                  ),
                                 ],
                               ),
                             ),
@@ -466,25 +573,36 @@ class _AccountPageState extends State<AccountPage> {
                         ),
                       ),
                     ),
-                    
+
                     // Fixed Footer
                     Container(
                       padding: EdgeInsets.only(
                         bottom: MediaQuery.of(context).padding.bottom + 16,
-                        top: 16
+                        top: 16,
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Opacity(
-                             opacity: 0.8,
-                             child: Image.asset(
-                                'assets/logo.png',
-                                height: 32, // Smaller
-                                width: 32,
-                              ),
+                            opacity: 0.8,
+                            child: Image.asset(
+                              'assets/logo.png',
+                              height: 32, // Smaller
+                              width: 32,
+                            ),
                           ),
                           const SizedBox(height: 8),
+                          const SizedBox(height: 8),
+                          if (_version.isNotEmpty)
+                            Text(
+                              "v$_version",
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          const SizedBox(height: 4),
                           const Text(
                             "Built by Scalar Coding",
                             style: TextStyle(
