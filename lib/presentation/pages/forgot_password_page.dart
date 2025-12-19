@@ -50,6 +50,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     context.pop(); // Go back to login
                   }
 
+                  if (state is AuthNeedsRegistration) {
+                    if (!mounted) return;
+                    context.pushNamed('register', extra: state.nrp);
+                  }
+
                   if (state is AuthError) {
                     if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(

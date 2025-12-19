@@ -9,8 +9,12 @@ class UserEntity {
   final String? photoUrl;
   final String? bgPhotoUrl;
   final String? positionDescription;
+  final bool? active;
+  final bool? registered;
+  final String? section;
+  final DateTime? updatedAt;
 
-  UserEntity({
+  const UserEntity({
     required this.id,
     required this.email,
     this.nrp,
@@ -21,5 +25,9 @@ class UserEntity {
     this.photoUrl,
     this.bgPhotoUrl,
     this.positionDescription,
+    this.active,
+    this.registered,
+    this.section,
+    this.updatedAt,
   });
 }

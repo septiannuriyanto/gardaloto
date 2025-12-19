@@ -72,6 +72,10 @@ class _AuthGateState extends State<AuthGate> {
           return const LoginPage();
         }
 
+        if (state is cubit_auth.AuthRegistered) {
+          return const LoginPage();
+        }
+
         return const Scaffold(
           body: AppBackground(
             child: Center(

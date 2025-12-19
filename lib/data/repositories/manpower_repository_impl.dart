@@ -1,151 +1,126 @@
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:gardaloto/data/models/manpower_model.dart';
+import 'dart:convert';
+import 'package:gardaloto/data/datasources/manpower_datasource.dart';
+import 'package:gardaloto/data/models/user_model.dart';
 import 'package:gardaloto/domain/entities/manpower_entity.dart';
+import 'package:gardaloto/domain/entities/user_entity.dart';
+import 'package:gardaloto/domain/entities/incumbent_entity.dart';
 import 'package:gardaloto/domain/repositories/manpower_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:gardaloto/data/models/incumbent_model.dart';
 
 class ManpowerRepositoryImpl implements ManpowerRepository {
-  static const _boxName = 'manpower_box';
-  static const _kLastUpdated = 'lastManpowerUpdated';
+  final ManpowerDatasource datasource;
+  late SharedPreferences _prefs;
 
-  final SupabaseClient _supabase;
-  late Box<ManpowerModel> _box;
-
-  ManpowerRepositoryImpl(this._supabase);
+  ManpowerRepositoryImpl(this.datasource);
 
   Future<void> init() async {
-    if (!Hive.isAdapterRegistered(1)) {
-      Hive.registerAdapter(ManpowerModelAdapter());
-    }
-    try {
-      _box = await Hive.openBox<ManpowerModel>(_boxName);
-    } catch (e) {
-      // If box is corrupted, delete and recreate
-      await Hive.deleteBoxFromDisk(_boxName);
-      _box = await Hive.openBox<ManpowerModel>(_boxName);
-    }
+    _prefs = await SharedPreferences.getInstance();
   }
 
   @override
-  Future<String> syncManpower() async {
+  Future<List<UserEntity>> getAllUsers() async {
+    // For admin, fetch fresh from DB
+    return await datasource.fetchAllUsers();
+  }
+
+  @override
+  Future<void> toggleUserStatus(String nrp, bool isActive) async {
+    await datasource.updateUserStatus(nrp, isActive);
+    // Optionally update local cache if we want to reflect changes immediately
+    // blocked by sync logic complexity, so sticking to remote source check for admin.
+  }
+
+  @override
+  Future<void> deleteUser(String nrp) async {
+    await datasource.deleteUser(nrp);
+  }
+
+  // === RESTORED SYNC LOGIC ===
+
+  @override
+  Future<void> syncManpower() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final lastUpdatedStr = prefs.getString(_kLastUpdated);
-      final DateTime? lastUpdated =
-          lastUpdatedStr != null ? DateTime.tryParse(lastUpdatedStr) : null;
-
-      if (_box.isEmpty) {
-        // Initial sync: Fetch all
-        return await _fetchAllAndSave(prefs);
-      } else {
-        // Incremental sync
-        if (lastUpdated == null) {
-          // Fallback if box has data but no timestamp
-          return await _fetchAllAndSave(prefs);
-        }
-        return await _syncIncremental(prefs, lastUpdated);
-      }
+      final users = await datasource.fetchAllUsers();
+      final List<Map<String, dynamic>> jsonList = users.map((u) => u.toJson()).toList();
+      await _prefs.setString('manpower_cache', jsonEncode(jsonList));
     } catch (e) {
-      throw Exception('Sync failed: $e');
-    }
-  }
-
-  Future<String> _fetchAllAndSave(SharedPreferences prefs) async {
-    final response = await _supabase
-        .from('manpower')
-        .select('nrp, nama, sid_code, position, email, updated_at');
-
-    final List<dynamic> data = response as List<dynamic>;
-    if (data.isEmpty) return 'No manpower data found.';
-
-    await _box.clear();
-    final models = data.map((json) => ManpowerModel.fromJson(json)).toList();
-    
-    // Save to Hive
-    final Map<String, ManpowerModel> map = {
-      for (var m in models) m.nrp: m,
-    };
-    await _box.putAll(map);
-
-    // Update max updated_at
-    await _updateLastTimestamp(prefs, models);
-
-    return 'Full sync completed. ${models.length} records downloaded.';
-  }
-
-  Future<String> _syncIncremental(
-    SharedPreferences prefs,
-    DateTime lastUpdated,
-  ) async {
-    // Check count of new records
-    final countResponse = await _supabase
-        .from('manpower')
-        .select('nrp') // minimal select for count
-        .gt('updated_at', lastUpdated.toIso8601String())
-        .count(CountOption.exact);
-    
-    final count = countResponse.count;
-
-    if (count == 0) {
-      return 'Data is up to date.';
-    }
-
-    // Fetch new records
-    final response = await _supabase
-        .from('manpower')
-        .select('nrp, nama, sid_code, position, email, updated_at')
-        .gt('updated_at', lastUpdated.toIso8601String());
-
-    final List<dynamic> data = response as List<dynamic>;
-    final models = data.map((json) => ManpowerModel.fromJson(json)).toList();
-
-    // Append/Update Hive
-    final Map<String, ManpowerModel> map = {
-      for (var m in models) m.nrp: m,
-    };
-    await _box.putAll(map);
-
-    // Update max updated_at
-    await _updateLastTimestamp(prefs, models);
-
-    return 'Synced ${models.length} new/updated records.';
-  }
-
-  Future<void> _updateLastTimestamp(
-    SharedPreferences prefs,
-    List<ManpowerModel> models,
-  ) async {
-    if (models.isEmpty) return;
-    
-    // Find max updated_at
-    DateTime? maxDate;
-    for (var m in models) {
-      if (m.updatedAt != null) {
-        if (maxDate == null || m.updatedAt!.isAfter(maxDate)) {
-          maxDate = m.updatedAt;
-        }
-      }
-    }
-
-    if (maxDate != null) {
-      await prefs.setString(_kLastUpdated, maxDate.toIso8601String());
+      print('Sync failed: $e');
     }
   }
 
   @override
   Future<List<ManpowerEntity>> getFuelmen() async {
-    return _box.values
-        .where((m) => m.position == 5)
-        .map((m) => m.toEntity())
-        .toList();
+    return _getManpowerByPosition(5); 
   }
 
   @override
   Future<List<ManpowerEntity>> getOperators() async {
-    return _box.values
-        .where((m) => m.position == 4)
-        .map((m) => m.toEntity())
-        .toList();
+      return _getManpowerByPosition(4);
+  }
+  
+  @override
+  Future<void> unregisterUser(String nrp) async {
+    await datasource.unregisterUser(nrp);
+  }
+
+  @override
+  Future<void> updateUser(UserEntity user) async {
+    if (user is UserModel) {
+       await datasource.updateUser(user);
+    } else {
+       // Convert UserEntity to UserModel if needed, or simple cast/copy
+       // Since UserEntity is just the base, we should probably construct a UserModel from it
+       // But assuming we pass UserModel from UI logic essentially.
+       await datasource.updateUser(
+         UserModel(
+           id: user.id,
+           email: user.email,
+           nrp: user.nrp,
+           nama: user.nama,
+           active: user.active,
+           position: user.position,
+           sidCode: user.sidCode,
+           section: user.section,
+           // ... others
+         )
+       );
+    }
+  }
+
+  @override
+  Future<List<IncumbentEntity>> getIncumbents() async {
+    final list = await datasource.fetchIncumbents();
+    return list.map((json) => IncumbentModel.fromJson(json)).toList();
+  }
+
+  @override
+  Future<void> addManpower(String nrp) async {
+    await datasource.insertManpower(nrp);
+  }
+
+  Future<List<ManpowerEntity>> _getManpowerByPosition(int pos) async {
+    final jsonStr = _prefs.getString('manpower_cache');
+    if (jsonStr == null) return [];
+
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      return list
+          .map((item) {
+             return ManpowerEntity(
+               nrp: item['nrp'],
+               nama: item['nama'],
+               sidCode: item['sidCode'], // Note: UserModel toJson uses camelCase keys 'sidCode'
+               position: item['position'],
+               email: item['email'],
+             );
+          })
+          .where((e) => e.position == pos)
+          .toList();
+    } catch (e) {
+      print('Error parsing manpower cache: $e');
+      return [];
+    }
   }
 }

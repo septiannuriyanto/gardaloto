@@ -9,4 +9,12 @@ abstract class AuthRepository {
   Future<void> deletePhoto(bool isBg);
   Future<void> resetPassword(String nrp);
   Future<void> updatePassword(String newPassword);
+  
+  Future<void> register({
+    required String nrp,
+    required String name,
+    required String email,
+    required String password,
+    String? sidCode,
+  });
 }

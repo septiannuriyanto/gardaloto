@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gardaloto/presentation/cubit/auth_cubit.dart';
+import 'package:gardaloto/presentation/cubit/auth_state.dart';
 
 class Sidebar extends StatelessWidget {
   const Sidebar({super.key});
@@ -58,6 +59,19 @@ class Sidebar extends StatelessWidget {
                       _buildListTile(context, 'LOTO', Icons.lock, 'loto'),
                       _buildListTile(context, 'Fit To Work', Icons.health_and_safety, 'fit'),
                       _buildListTile(context, 'Ready To Work', Icons.check_circle, 'ready'),
+                      BlocBuilder<AuthCubit, AuthState>(
+                        builder: (context, state) {
+                          if (state is AuthAuthenticated && state.user.position == 0) {
+                            return _buildListTile(
+                              context,
+                              'Control Panel',
+                              Icons.admin_panel_settings,
+                              'control_panel',
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
                     ],
                   ),
                 ),

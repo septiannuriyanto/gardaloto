@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gardaloto/domain/usecases/get_current_user.dart';
 import 'package:gardaloto/domain/usecases/login_user.dart';
 import 'package:gardaloto/domain/usecases/logout_user.dart';
+import 'package:gardaloto/domain/usecases/register_user.dart';
 import 'package:gardaloto/domain/usecases/reset_password.dart';
 import 'package:gardaloto/domain/usecases/update_password.dart';
 import 'package:gardaloto/domain/usecases/update_profile_photo.dart';
@@ -18,6 +19,8 @@ class AuthCubit extends Cubit<AuthState> {
   final ResetPassword resetPasswordUseCase;
   final UpdatePassword updatePasswordUseCase;
 
+  final RegisterUser registerUserUseCase;
+
   AuthCubit({
     required this.loginUser,
     required this.logoutUser,
@@ -26,13 +29,9 @@ class AuthCubit extends Cubit<AuthState> {
     required this.deleteProfilePhotoUseCase,
     required this.resetPasswordUseCase,
     required this.updatePasswordUseCase,
+    required this.registerUserUseCase,
   }) : super(AuthInitial()) {
     _loadCurrentUser();
-    // Listen for Password Recovery event
-    // We can't easily access Supabase instance here directly without injecting it or using a stream.
-    // For now, let's assume the router or a top-level listener handles the DEEP LINK redirection to the UpdatePasswordPage.
-    // However, Supabase Auth state change 'passwordRecovery' is emitted when the user clicks the link.
-    // Let's defer that logic to the Router or a separate listener if needed, OR handling it here if we want to emit a state.
   }
 
   Future<void> _loadCurrentUser() async {
@@ -107,20 +106,44 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  Future<void> register({
+    required String nrp,
+    required String name,
+    required String email,
+    required String password,
+    String? sidCode,
+  }) async {
+    emit(AuthLoading());
+    try {
+      await registerUserUseCase(
+        nrp: nrp,
+        name: name,
+        email: email,
+        password: password,
+        sidCode: sidCode,
+      );
+      // Logout explicitly to prevent auto-login since account is inactive by default
+      await logoutUser();
+      emit(AuthRegistered());
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
   Future<void> sendPasswordResetEmail(String nrp) async {
     emit(AuthLoading());
     try {
       await resetPasswordUseCase(nrp);
       emit(AuthPasswordResetEmailSent());
-      // Revert to Unauthenticated after showing success logic (handled in UI listener)
-      // Allow a brief moment for UI listeners to react if needed,
-      // but simpler to just revert immediately or after next event loop.
-      // Since ForgotPasswordPage pops on this state, this transition helps AuthGate render Login page cleanly.
       emit(AuthUnauthenticated());
     } catch (e) {
-      emit(AuthError(e.toString()));
-      // We should go back to Unauthenticated state eventually so user can retry or login
-      // But let the UI handle the error state first
+      final message = e.toString().replaceAll('Exception: ', '');
+      
+      if (message == 'NEEDS_REGISTER') {
+        emit(AuthNeedsRegistration(nrp));
+      } else {
+        emit(AuthError(message));
+      }
     }
   }
 

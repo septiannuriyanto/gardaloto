@@ -18,6 +18,13 @@ class AuthError extends AuthState {
   AuthError(this.message);
 }
 
+class AuthNeedsRegistration extends AuthState {
+  final String nrp;
+  AuthNeedsRegistration(this.nrp);
+}
+
+class AuthRegistered extends AuthState {}
+
 class AuthPasswordResetEmailSent extends AuthState {}
 
 class AuthPasswordUpdated extends AuthState {}

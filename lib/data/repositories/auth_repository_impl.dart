@@ -130,6 +130,27 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> register({
+    required String nrp,
+    required String name,
+    required String email,
+    required String password,
+    String? sidCode,
+  }) async {
+    try {
+      await datasource.register(
+        nrp: nrp,
+        name: name,
+        email: email,
+        password: password,
+        sidCode: sidCode,
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
   Future<void> updatePassword(String newPassword) async {
     await datasource.updatePassword(newPassword);
   }

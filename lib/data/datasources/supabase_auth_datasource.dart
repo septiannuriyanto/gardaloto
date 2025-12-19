@@ -29,23 +29,36 @@ class SupabaseAuthDatasource {
     }
   }
 
+  String _sanitizeNrp(String input) {
+    return input.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+  }
+
   Future<UserModel?> signInWithNrp(String nrp, String password) async {
     try {
+      final sanitizedNrp = _sanitizeNrp(nrp);
       // 1. Lookup Email by NRP
       // Fetch Basic Manpower Data first
       final manpowerData = await client
           .from('manpower')
           .select() // Select all columns
-          .eq('nrp', nrp)
+          .eq('nrp', sanitizedNrp)
           .maybeSingle();
 
       if (manpowerData == null) {
         throw Exception('NRP not found');
       }
 
+      // Check if account is active
+      final isActive = manpowerData['active'] as bool? ?? true; // Default to true if null, or user preference? 
+      // User said: "If the active column is false, then it shows snackbar"
+      // Safest is to handle explicit false.
+      if (isActive == false) {
+        throw Exception('Contact your supervisor to activate your account');
+      }
+
       final email = manpowerData['email'] as String?;
       if (email == null || email.isEmpty) {
-        throw Exception('Email not registered for this NRP');
+        throw Exception('Anda belum mendaftarkan email, hubungi pengawas atau admin untuk mendaftarkan email pada akun anda');
       }
 
       // 1b. Fetch Position Description Separately (Safer than JOIN)
@@ -121,7 +134,7 @@ class SupabaseAuthDatasource {
             storagePath,
             file,
             fileOptions: const FileOptions(upsert: true),
-          );
+           );
 
       // 2. Get Public URL
       final publicUrl = client.storage.from('images').getPublicUrl(storagePath);
@@ -161,13 +174,85 @@ class SupabaseAuthDatasource {
     }
   }
 
-  Future<void> resetPassword(String nrp) async {
+  Future<void> register({
+    required String nrp,
+    required String name,
+    required String email,
+    required String password,
+    String? sidCode,
+  }) async {
     try {
-      // 1. Lookup Email by NRP
+      final sanitizedNrp = _sanitizeNrp(nrp);
+      final sanitizedName = name.toUpperCase();
+
+      // 1. Check if NRP exists in manpower
+      // ... logic skipped for brevity if identical, but full replacement is safer here ...
+      // Actually previous code checked creation. Wait, previous log shows "Check if NRP exists" 
+      // User request implies registration into EXISTING manpower or NEW? 
+      // "insert into manpower" was in Step 831 replacement code logic (which assumed new record). 
+      // BUT current file content (Step 853) shows logic that UPDATES existing manpower record:
+      // "await client.from('manpower').update({...}).eq('nrp', sanitizedNrp);"
+      
+      // If the user flow is "Register for account" where NRP exists, we UPDATE.
+      // If the user flow is "Create new manpower", we INSERT.
+      // Based on Step 853 code, it does an UPDATE.
+      // So I should stick to UPDATE logic but add sid_code and position: null.
+      
+      // 1. Check if NRP exists in manpower
       final manpowerData = await client
           .from('manpower')
-          .select('email')
-          .eq('nrp', nrp)
+          .select()
+          .eq('nrp', sanitizedNrp)
+          .maybeSingle();
+
+      if (manpowerData == null) {
+        // If NRP not found, maybe we should INSERT? 
+        // But the current code throws "NRP not found in database. Contact Admin."
+        // This implies users must already be in manpower list (pre-populated by admin).
+        // I will stick to this logic unless instructed otherwise.
+         throw Exception('NRP not found in database. Contact Admin.');
+      }
+
+      // 2. Sign Up with Supabase Auth
+      final res = await client.auth.signUp(
+        email: email,
+        password: password,
+        data: {'nrp': sanitizedNrp, 'full_name': sanitizedName},
+      );
+
+      if (res.user == null) {
+        throw Exception('Registration failed');
+      }
+
+      // 3. Update manpower table
+      await client
+          .from('manpower')
+          .update({
+            'email': email,
+            'nama': sanitizedName,
+            'active': false,
+            'sid_code': sidCode,
+            'position': null, // Explicitly null as requested
+          })
+          .eq('nrp', sanitizedNrp);
+
+    } catch (e) {
+      print('Error registering user: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> resetPassword(String nrp) async {
+    try {
+      final sanitizedNrp = _sanitizeNrp(nrp);
+      // 1. Lookup Email by NRP
+      // Select email and user_id to distinguish account existence
+      // If 'user_id' doesn't exist in table, this might error if we SELECT it explicitly.
+      // But query 'select()' fetches all.
+      final manpowerData = await client
+          .from('manpower')
+          .select() 
+          .eq('nrp', sanitizedNrp)
           .maybeSingle();
 
       if (manpowerData == null) {
@@ -175,6 +260,15 @@ class SupabaseAuthDatasource {
       }
 
       final email = manpowerData['email'] as String?;
+      final userId = manpowerData['user_id']; // Trying to detect if auth account exists
+
+      if (email == null || email.isEmpty) {
+        if (userId == null) {
+             throw Exception('NEEDS_REGISTER'); 
+        } else {
+             throw Exception('Email belum tersimpan dalam akun, hubungi pengawas untuk update alamat email');
+        }
+      }
       if (email == null || email.isEmpty) {
         throw Exception('Email not registered for this NRP');
       }

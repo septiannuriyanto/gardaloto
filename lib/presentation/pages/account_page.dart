@@ -12,6 +12,8 @@ import 'package:photo_view/photo_view.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:gardaloto/core/service_locator.dart'; // For accessing dependencies if needed, but Cubit is enough
 
+import 'package:palette_generator/palette_generator.dart';
+
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
 
@@ -20,15 +22,85 @@ class AccountPage extends StatefulWidget {
 }
 
 class _AccountPageState extends State<AccountPage> {
-  late final List<Color> _gradientColors;
+  List<Color> _gradientColors = [];
+  String? _currentBgUrl;
 
   @override
   void initState() {
     super.initState();
     _gradientColors = _generateRandomGradient();
+    
+    // Initial check if user is loaded
+    final state = context.read<AuthCubit>().state;
+    if (state is AuthAuthenticated) {
+      _updatePalette(state.user.bgPhotoUrl);
+    }
   }
 
   final ImagePicker _picker = ImagePicker();
+
+  Future<void> _updatePalette(String? url) async {
+    if (url == _currentBgUrl) return; // No change
+    _currentBgUrl = url;
+
+    if (url == null || url.isEmpty) {
+        // Revert to random or keep current? 
+        // User might want to revert to default if they remove photo.
+        // But if they just entered, random is fine.
+        return;
+    }
+
+    try {
+      final palette = await PaletteGenerator.fromImageProvider(
+        CachedNetworkImageProvider(url),
+        maximumColorCount: 20,
+      );
+      
+      if (!mounted) return;
+
+      Color? dominant = palette.dominantColor?.color;
+      Color? darkVibrant = palette.darkVibrantColor?.color;
+
+      Color? darkMuted = palette.darkMutedColor?.color;
+
+      // Logic to pick harmonious gradient
+      // We want a dark-ish background usually.
+      
+      List<Color> newColors = [];
+      
+      if (dominant != null && darkVibrant != null) {
+         newColors = [dominant, darkVibrant];
+      } else if (dominant != null) {
+         newColors = [dominant, dominant.withValues(alpha: 0.6)]; // Darker shade?
+      } else if (darkMuted != null) {
+         newColors = [darkMuted, Colors.black];
+      }
+      
+      // Ensure it's not too bright if we want dark theme consistency?
+      // Use HSL to darken if needed? 
+      // For now, let's just use what we found but darken them for background use.
+      
+      if (newColors.isNotEmpty) {
+          setState(() {
+            _gradientColors = newColors.map((c) {
+               // Make sure it's not too bright. 
+               final hsl = HSLColor.fromColor(c);
+               if (hsl.lightness > 0.4) {
+                 return hsl.withLightness(0.2).toColor(); // Darken it
+               }
+               return c;
+            }).toList();
+             
+             // Ensure at least 2 colors for gradient
+             if (_gradientColors.length == 1) {
+                _gradientColors.add(Colors.black);
+             }
+          });
+      }
+    } catch (e) {
+      print('Error generating palette: $e');
+    }
+  }
 
   List<Color> _generateRandomGradient() {
     final random = Random();
@@ -50,8 +122,6 @@ class _AccountPageState extends State<AccountPage> {
 
     Color c1 = colors[random.nextInt(colors.length)];
     Color c2 = colors[random.nextInt(colors.length)];
-    // Ensure sufficient contrast or difference if desired, for now random is fine
-    // Fallback to a default set if they are too similar?
     if (c1 == c2) c2 = colors[(colors.indexOf(c1) + 1) % colors.length];
 
     return [c1, c2];
@@ -194,7 +264,12 @@ class _AccountPageState extends State<AccountPage> {
     final topHeight = screenHeight * 0.30;
     const avatarRadius = 60.0;
 
-    return BlocBuilder<AuthCubit, AuthState>(
+    return BlocConsumer<AuthCubit, AuthState>(
+      listener: (context, state) {
+        if (state is AuthAuthenticated) {
+           _updatePalette(state.user.bgPhotoUrl);
+        }
+      },
       builder: (context, state) {
         String? photoUrl;
         String? bgPhotoUrl;

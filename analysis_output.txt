@@ -1,47 +1,332 @@
 Analyzing gardaloto...                                          
 
-   info • The local variable '_lotoRepo' starts with an underscore • lib/core/service_locator.dart:59:9 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_masterRepo' starts with an underscore • lib/core/service_locator.dart:63:9 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_manpowerRepo' starts with an underscore • lib/core/service_locator.dart:68:9 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_storageRepo' starts with an underscore • lib/core/service_locator.dart:74:9 • no_leading_underscores_for_local_identifiers
-   info • Don't invoke 'print' in production code • lib/data/datasources/supabase_auth_datasource.dart:25:7 • avoid_print
-warning • The value of the local variable 'response' isn't used • lib/data/repositories/loto_repository_impl.dart:236:11 • unused_local_variable
-   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:159:7 • avoid_print
-   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:189:9 • avoid_print
-   info • Use 'rethrow' to rethrow a caught exception • lib/presentation/cubit/loto_cubit.dart:191:9 • use_rethrow_when_possible
+   info • The local variable '_lotoRepo' starts with an underscore • lib/core/service_locator.dart:73:9 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_masterRepo' starts with an underscore • lib/core/service_locator.dart:77:9 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_manpowerRepo' starts with an underscore • lib/core/service_locator.dart:84:9 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_storageRepo' starts with an underscore • lib/core/service_locator.dart:90:9 • no_leading_underscores_for_local_identifiers
+  error • The name 'UserModel' isn't a type, so it can't be used as a type argument • lib/data/datasources/manpower_datasource.dart:9:15 • non_type_as_type_argument
+  error • The method 'fromManpower' isn't defined for the type 'Function' • lib/data/datasources/manpower_datasource.dart:22:27 • undefined_method
+   info • Don't invoke 'print' in production code • lib/data/datasources/manpower_datasource.dart:25:7 • avoid_print
+  error • The name 'UserModel' isn't a type, so it can't be used as a type argument • lib/data/datasources/manpower_datasource.dart:30:15 • non_type_as_type_argument
+   info • Don't invoke 'print' in production code • lib/data/datasources/manpower_datasource.dart:43:7 • avoid_print
+  error • UserModel isn't a type • lib/data/datasources/manpower_datasource.dart:48:27 • not_a_type
+   info • Don't invoke 'print' in production code • lib/data/datasources/manpower_datasource.dart:62:8 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/datasources/manpower_datasource.dart:71:8 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/datasources/manpower_datasource.dart:97:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/datasources/manpower_datasource.dart:110:7 • avoid_print
+  error • The name 'UserModel' isn't a type, so it can't be used as a type argument • lib/data/datasources/supabase_auth_datasource.dart:11:10 • non_type_as_type_argument
+  error • The method 'fromSupabase' isn't defined for the type 'Function' • lib/data/datasources/supabase_auth_datasource.dart:23:24 • undefined_method
+   info • Don't invoke 'print' in production code • lib/data/datasources/supabase_auth_datasource.dart:27:7 • avoid_print
+  error • The name 'UserModel' isn't a type, so it can't be used as a type argument • lib/data/datasources/supabase_auth_datasource.dart:36:10 • non_type_as_type_argument
+   info • Don't invoke 'print' in production code • lib/data/datasources/supabase_auth_datasource.dart:79:11 • avoid_print
+  error • The method 'fromManpower' isn't defined for the type 'Function' • lib/data/datasources/supabase_auth_datasource.dart:105:24 • undefined_method
+   info • Don't invoke 'print' in production code • lib/data/datasources/supabase_auth_datasource.dart:107:7 • avoid_print
+  error • The name 'UserModel' isn't a type, so it can't be used as a type argument • lib/data/datasources/supabase_auth_datasource.dart:116:10 • non_type_as_type_argument
+  error • The method 'fromSupabase' isn't defined for the type 'Function' • lib/data/datasources/supabase_auth_datasource.dart:119:22 • undefined_method
+   info • Don't invoke 'print' in production code • lib/data/datasources/supabase_auth_datasource.dart:153:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/datasources/supabase_auth_datasource.dart:172:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/datasources/supabase_auth_datasource.dart:240:7 • avoid_print
+warning • The operand can't be 'null', so the condition is always 'false' • lib/data/datasources/supabase_auth_datasource.dart:272:17 • unnecessary_null_comparison
+   info • Don't invoke 'print' in production code • lib/data/datasources/supabase_auth_datasource.dart:283:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/datasources/supabase_auth_datasource.dart:294:7 • avoid_print
+  error • The name of a factory constructor must be the same as the name of the immediately enclosing class • lib/data/models/user_model.dart:22:11 • invalid_factory_name_not_a_class
+  error • The named parameter 'id' isn't defined • lib/data/models/user_model.dart:24:7 • undefined_named_parameter
+  error • The named parameter 'email' isn't defined • lib/data/models/user_model.dart:25:7 • undefined_named_parameter
+  error • The named parameter 'nrp' isn't defined • lib/data/models/user_model.dart:26:7 • undefined_named_parameter
+  error • The named parameter 'nama' isn't defined • lib/data/models/user_model.dart:27:7 • undefined_named_parameter
+  error • The name of a factory constructor must be the same as the name of the immediately enclosing class • lib/data/models/user_model.dart:31:11 • invalid_factory_name_not_a_class
+  error • The named parameter 'id' isn't defined • lib/data/models/user_model.dart:33:7 • undefined_named_parameter
+  error • The named parameter 'email' isn't defined • lib/data/models/user_model.dart:34:7 • undefined_named_parameter
+  error • The named parameter 'nrp' isn't defined • lib/data/models/user_model.dart:35:7 • undefined_named_parameter
+  error • The named parameter 'nama' isn't defined • lib/data/models/user_model.dart:36:7 • undefined_named_parameter
+  error • The named parameter 'activeDate' isn't defined • lib/data/models/user_model.dart:37:7 • undefined_named_parameter
+  error • The named parameter 'position' isn't defined • lib/data/models/user_model.dart:40:7 • undefined_named_parameter
+  error • The named parameter 'sidCode' isn't defined • lib/data/models/user_model.dart:41:7 • undefined_named_parameter
+  error • The named parameter 'positionDescription' isn't defined • lib/data/models/user_model.dart:42:7 • undefined_named_parameter
+  error • The named parameter 'photoUrl' isn't defined • lib/data/models/user_model.dart:43:7 • undefined_named_parameter
+  error • The named parameter 'bgPhotoUrl' isn't defined • lib/data/models/user_model.dart:44:7 • undefined_named_parameter
+  error • The named parameter 'active' isn't defined • lib/data/models/user_model.dart:45:7 • undefined_named_parameter
+  error • The named parameter 'registered' isn't defined • lib/data/models/user_model.dart:46:7 • undefined_named_parameter
+  error • The named parameter 'section' isn't defined • lib/data/models/user_model.dart:47:7 • undefined_named_parameter
+  error • The named parameter 'updatedAt' isn't defined • lib/data/models/user_model.dart:48:7 • undefined_named_parameter
+  error • The name of a factory constructor must be the same as the name of the immediately enclosing class • lib/data/models/user_model.dart:52:11 • invalid_factory_name_not_a_class
+  error • The named parameter 'id' isn't defined • lib/data/models/user_model.dart:54:7 • undefined_named_parameter
+  error • The named parameter 'email' isn't defined • lib/data/models/user_model.dart:55:7 • undefined_named_parameter
+  error • The named parameter 'nrp' isn't defined • lib/data/models/user_model.dart:56:7 • undefined_named_parameter
+  error • The named parameter 'nama' isn't defined • lib/data/models/user_model.dart:57:7 • undefined_named_parameter
+  error • The named parameter 'activeDate' isn't defined • lib/data/models/user_model.dart:58:7 • undefined_named_parameter
+  error • The named parameter 'position' isn't defined • lib/data/models/user_model.dart:61:7 • undefined_named_parameter
+  error • The named parameter 'sidCode' isn't defined • lib/data/models/user_model.dart:62:7 • undefined_named_parameter
+  error • The named parameter 'positionDescription' isn't defined • lib/data/models/user_model.dart:63:7 • undefined_named_parameter
+  error • The named parameter 'photoUrl' isn't defined • lib/data/models/user_model.dart:64:7 • undefined_named_parameter
+  error • The named parameter 'bgPhotoUrl' isn't defined • lib/data/models/user_model.dart:65:7 • undefined_named_parameter
+  error • The named parameter 'active' isn't defined • lib/data/models/user_model.dart:66:7 • undefined_named_parameter
+  error • The named parameter 'registered' isn't defined • lib/data/models/user_model.dart:67:7 • undefined_named_parameter
+  error • The named parameter 'section' isn't defined • lib/data/models/user_model.dart:68:7 • undefined_named_parameter
+  error • The named parameter 'updatedAt' isn't defined • lib/data/models/user_model.dart:69:7 • undefined_named_parameter
+  error • UserModel isn't a type • lib/data/models/user_model.dart:92:3 • not_a_type
+  error • The named parameter 'id' isn't defined • lib/data/models/user_model.dart:109:7 • undefined_named_parameter
+  error • The named parameter 'email' isn't defined • lib/data/models/user_model.dart:110:7 • undefined_named_parameter
+  error • The named parameter 'nrp' isn't defined • lib/data/models/user_model.dart:111:7 • undefined_named_parameter
+  error • The named parameter 'nama' isn't defined • lib/data/models/user_model.dart:112:7 • undefined_named_parameter
+  error • The named parameter 'activeDate' isn't defined • lib/data/models/user_model.dart:113:7 • undefined_named_parameter
+  error • The named parameter 'position' isn't defined • lib/data/models/user_model.dart:114:7 • undefined_named_parameter
+  error • The named parameter 'sidCode' isn't defined • lib/data/models/user_model.dart:115:7 • undefined_named_parameter
+  error • The named parameter 'positionDescription' isn't defined • lib/data/models/user_model.dart:116:7 • undefined_named_parameter
+  error • The named parameter 'photoUrl' isn't defined • lib/data/models/user_model.dart:117:7 • undefined_named_parameter
+  error • The named parameter 'bgPhotoUrl' isn't defined • lib/data/models/user_model.dart:118:7 • undefined_named_parameter
+  error • The named parameter 'active' isn't defined • lib/data/models/user_model.dart:119:7 • undefined_named_parameter
+  error • Expected an identifier • lib/data/models/user_model.dart:120:7 • missing_identifier
+  error • The named parameter '' isn't defined • lib/data/models/user_model.dart:120:20 • undefined_named_parameter
+  error • Expected an identifier • lib/data/models/user_model.dart:121:7 • missing_identifier
+  error • The argument for the named parameter '' was already specified • lib/data/models/user_model.dart:121:17 • duplicate_named_argument
+  error • The named parameter '' isn't defined • lib/data/models/user_model.dart:121:17 • undefined_named_parameter
+  error • Expected an identifier • lib/data/models/user_model.dart:122:7 • missing_identifier
+  error • The argument for the named parameter '' was already specified • lib/data/models/user_model.dart:122:17 • duplicate_named_argument
+  error • The named parameter '' isn't defined • lib/data/models/user_model.dart:122:17 • undefined_named_parameter
+  error • Expected an identifier • lib/data/models/user_model.dart:123:7 • missing_identifier
+  error • The argument for the named parameter '' was already specified • lib/data/models/user_model.dart:123:18 • duplicate_named_argument
+  error • The named parameter '' isn't defined • lib/data/models/user_model.dart:123:18 • undefined_named_parameter
+  error • Expected an identifier • lib/data/models/user_model.dart:124:7 • missing_identifier
+  error • The argument for the named parameter '' was already specified • lib/data/models/user_model.dart:124:21 • duplicate_named_argument
+  error • The named parameter '' isn't defined • lib/data/models/user_model.dart:124:21 • undefined_named_parameter
+  error • Expected an identifier • lib/data/models/user_model.dart:125:7 • missing_identifier
+  error • The argument for the named parameter '' was already specified • lib/data/models/user_model.dart:125:22 • duplicate_named_argument
+  error • The named parameter '' isn't defined • lib/data/models/user_model.dart:125:22 • undefined_named_parameter
+  error • Expected an identifier • lib/data/models/user_model.dart:126:7 • missing_identifier
+  error • The argument for the named parameter '' was already specified • lib/data/models/user_model.dart:126:15 • duplicate_named_argument
+  error • The named parameter '' isn't defined • lib/data/models/user_model.dart:126:15 • undefined_named_parameter
+  error • Expected to find ';' • lib/data/models/user_model.dart:126:23 • expected_token
+  error • Expected to find ')' • lib/data/models/user_model.dart:127:5 • expected_token
+  error • Expected a class member • lib/data/models/user_model.dart:127:6 • expected_class_member
+  error • Top-level declarations can't be declared to be 'factory' • lib/data/models/user_model.dart:130:3 • factory_top_level_declaration
+   info • The variable name 'UserModel' isn't a lowerCamelCase identifier • lib/data/models/user_model.dart:130:11 • non_constant_identifier_names
+  error • Functions must have an explicit list of parameters • lib/data/models/user_model.dart:130:11 • missing_function_parameters
+  error • The name 'UserModel' is already defined • lib/data/models/user_model.dart:130:11 • duplicate_definition
+  error • A function body must be provided • lib/data/models/user_model.dart:130:20 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/data/models/user_model.dart:130:20 • expected_executable
+  error • The named parameter 'id' isn't defined • lib/data/models/user_model.dart:132:7 • undefined_named_parameter
+  error • The named parameter 'email' isn't defined • lib/data/models/user_model.dart:133:7 • undefined_named_parameter
+  error • The named parameter 'nrp' isn't defined • lib/data/models/user_model.dart:134:7 • undefined_named_parameter
+  error • The named parameter 'nama' isn't defined • lib/data/models/user_model.dart:135:7 • undefined_named_parameter
+  error • The named parameter 'activeDate' isn't defined • lib/data/models/user_model.dart:136:7 • undefined_named_parameter
+  error • The named parameter 'position' isn't defined • lib/data/models/user_model.dart:139:7 • undefined_named_parameter
+  error • The named parameter 'sidCode' isn't defined • lib/data/models/user_model.dart:140:7 • undefined_named_parameter
+  error • The named parameter 'photoUrl' isn't defined • lib/data/models/user_model.dart:141:7 • undefined_named_parameter
+  error • The named parameter 'bgPhotoUrl' isn't defined • lib/data/models/user_model.dart:142:7 • undefined_named_parameter
+  error • The named parameter 'positionDescription' isn't defined • lib/data/models/user_model.dart:143:7 • undefined_named_parameter
+  error • The named parameter 'active' isn't defined • lib/data/models/user_model.dart:144:7 • undefined_named_parameter
+  error • Expected a method, getter, setter or operator declaration • lib/data/models/user_model.dart:147:1 • expected_executable
+  error • The method 'fromJson' isn't defined for the type 'Function' • lib/data/repositories/auth_repository_impl.dart:47:26 • undefined_method
+   info • Don't invoke 'print' in production code • lib/data/repositories/auth_repository_impl.dart:49:9 • avoid_print
+  error • The name 'UserModel' isn't a type and can't be used in an 'is' expression • lib/data/repositories/auth_repository_impl.dart:70:17 • type_test_with_non_type
+  error • The name 'UserModel' isn't a type and can't be used in an 'is' expression • lib/data/repositories/auth_repository_impl.dart:99:17 • type_test_with_non_type
+  error • The named parameter 'id' isn't defined • lib/data/repositories/auth_repository_impl.dart:102:10 • undefined_named_parameter
+  error • The named parameter 'email' isn't defined • lib/data/repositories/auth_repository_impl.dart:103:10 • undefined_named_parameter
+  error • The named parameter 'nrp' isn't defined • lib/data/repositories/auth_repository_impl.dart:104:10 • undefined_named_parameter
+  error • The named parameter 'nama' isn't defined • lib/data/repositories/auth_repository_impl.dart:105:10 • undefined_named_parameter
+  error • The named parameter 'activeDate' isn't defined • lib/data/repositories/auth_repository_impl.dart:106:10 • undefined_named_parameter
+  error • The named parameter 'position' isn't defined • lib/data/repositories/auth_repository_impl.dart:107:10 • undefined_named_parameter
+  error • The named parameter 'sidCode' isn't defined • lib/data/repositories/auth_repository_impl.dart:108:10 • undefined_named_parameter
+  error • The named parameter 'positionDescription' isn't defined • lib/data/repositories/auth_repository_impl.dart:109:10 • undefined_named_parameter
+  error • The named parameter 'photoUrl' isn't defined • lib/data/repositories/auth_repository_impl.dart:110:10 • undefined_named_parameter
+  error • The named parameter 'bgPhotoUrl' isn't defined • lib/data/repositories/auth_repository_impl.dart:111:10 • undefined_named_parameter
+  error • UserModel isn't a type • lib/data/repositories/auth_repository_impl.dart:117:33 • not_a_type
+   info • Don't invoke 'print' in production code • lib/data/repositories/auth_repository_impl.dart:123:7 • avoid_print
+warning • The value of the local variable 'response' isn't used • lib/data/repositories/loto_repository_impl.dart:246:11 • unused_local_variable
+   info • Don't invoke 'print' in production code • lib/data/repositories/loto_repository_impl.dart:378:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/repositories/loto_repository_impl.dart:392:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/repositories/loto_repository_impl.dart:406:7 • avoid_print
+warning • Unused import: 'package:gardaloto/data/models/user_model.dart' • lib/data/repositories/manpower_repository.dart:2:8 • unused_import
+  error • A value of type 'List<dynamic>' can't be returned from the method 'getAllUsers' because it has a return type of 'Future<List<UserEntity>>' • lib/data/repositories/manpower_repository.dart:18:12 • return_of_invalid_type
+  error • A value of type 'List<dynamic>' can't be returned from the method 'getAllUsers' because it has a return type of 'Future<List<UserEntity>>' • lib/data/repositories/manpower_repository_impl.dart:25:12 • return_of_invalid_type
+  error • A value of type 'List<dynamic>' can't be assigned to a variable of type 'List<Map<String, dynamic>>' • lib/data/repositories/manpower_repository_impl.dart:46:51 • invalid_assignment
+   info • Don't invoke 'print' in production code • lib/data/repositories/manpower_repository_impl.dart:49:7 • avoid_print
+  error • The name 'UserModel' isn't a type and can't be used in an 'is' expression • lib/data/repositories/manpower_repository_impl.dart:70:17 • type_test_with_non_type
+  error • The named parameter 'id' isn't defined • lib/data/repositories/manpower_repository_impl.dart:78:12 • undefined_named_parameter
+  error • The named parameter 'email' isn't defined • lib/data/repositories/manpower_repository_impl.dart:79:12 • undefined_named_parameter
+  error • The named parameter 'nrp' isn't defined • lib/data/repositories/manpower_repository_impl.dart:80:12 • undefined_named_parameter
+  error • The named parameter 'nama' isn't defined • lib/data/repositories/manpower_repository_impl.dart:81:12 • undefined_named_parameter
+  error • The named parameter 'active' isn't defined • lib/data/repositories/manpower_repository_impl.dart:82:12 • undefined_named_parameter
+  error • The named parameter 'position' isn't defined • lib/data/repositories/manpower_repository_impl.dart:83:12 • undefined_named_parameter
+  error • The named parameter 'sidCode' isn't defined • lib/data/repositories/manpower_repository_impl.dart:84:12 • undefined_named_parameter
+  error • The named parameter 'section' isn't defined • lib/data/repositories/manpower_repository_impl.dart:85:12 • undefined_named_parameter
+   info • Don't invoke 'print' in production code • lib/data/repositories/manpower_repository_impl.dart:122:7 • avoid_print
+warning • The declaration '_calculateShift' isn't referenced • lib/presentation/cubit/dashboard_cubit.dart:18:14 • unused_element
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/dashboard_cubit.dart:58:9 • avoid_print
+   info • Use 'rethrow' to rethrow a caught exception • lib/presentation/cubit/dashboard_cubit.dart:59:9 • use_rethrow_when_possible
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/dashboard_cubit.dart:83:10 • avoid_print
+warning • The value of the local variable 'checkpoint2' isn't used • lib/presentation/cubit/dashboard_cubit.dart:188:13 • unused_local_variable
+   info • The variable name 'checkpoint1_prev' isn't a lowerCamelCase identifier • lib/presentation/cubit/dashboard_cubit.dart:190:13 • non_constant_identifier_names
+warning • The value of the local variable 'checkpoint1_prev' isn't used • lib/presentation/cubit/dashboard_cubit.dart:190:13 • unused_local_variable
+   info • The variable name 'checkpoint2_prev' isn't a lowerCamelCase identifier • lib/presentation/cubit/dashboard_cubit.dart:191:13 • non_constant_identifier_names
+warning • The value of the local variable 'checkpoint2_prev' isn't used • lib/presentation/cubit/dashboard_cubit.dart:191:13 • unused_local_variable
+warning • Unused import: 'package:flutter/material.dart' • lib/presentation/cubit/loto_cubit.dart:2:8 • unused_import
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:39:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:65:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:79:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:94:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:119:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:128:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:140:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:141:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:142:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:155:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:162:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:169:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:176:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:183:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:187:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:201:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:203:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:207:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:247:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:258:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:267:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:275:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:277:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:281:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:285:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:288:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:290:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:291:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:298:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:323:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:361:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/cubit/loto_cubit.dart:379:9 • avoid_print
    info • The imported package 'bloc' isn't a dependency of the importing package • lib/presentation/cubit/loto_sessions_cubit.dart:1:8 • depend_on_referenced_packages
-  error • A constant constructor can't call a non-constant super constructor of 'LotoCapturing' • lib/presentation/cubit/loto_state.dart:33:9 • const_constructor_with_non_const_super
-warning • The getter doesn't override an inherited getter • lib/presentation/cubit/loto_state.dart:45:21 • override_on_non_overriding_member
-   info • The local variable '_picker' starts with an underscore • lib/presentation/pages/loto_page.dart:404:35 • no_leading_underscores_for_local_identifiers
-   info • The local variable '_picker' starts with an underscore • lib/presentation/pages/loto_page.dart:441:37 • no_leading_underscores_for_local_identifiers
-warning • Unused import: 'package:go_router/go_router.dart' • lib/presentation/pages/loto_review_page.dart:14:8 • unused_import
-warning • Unused import: 'package:photo_view/photo_view_gallery.dart' • lib/presentation/pages/loto_review_page.dart:17:8 • unused_import
-   info • The 'if' statement could be replaced by a null-aware assignment • lib/presentation/pages/loto_review_page.dart:224:11 • prefer_conditional_assignment
-warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/loto_review_page.dart:236:47 • unnecessary_non_null_assertion
-warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/loto_review_page.dart:244:65 • unnecessary_non_null_assertion
-warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/loto_review_page.dart:253:53 • unnecessary_non_null_assertion
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_review_page.dart:270:49 • deprecated_member_use
-warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/loto_review_page.dart:305:44 • unnecessary_non_null_assertion
-warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/loto_review_page.dart:330:48 • unnecessary_non_null_assertion
-warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/loto_review_page.dart:337:48 • unnecessary_non_null_assertion
-warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/loto_review_page.dart:395:55 • unnecessary_non_null_assertion
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_sessions_page.dart:266:61 • deprecated_member_use
-   info • Don't use 'BuildContext's across async gaps • lib/presentation/widget/capture_bottomsheet.dart:336:39 • use_build_context_synchronously
-   info • Don't use 'BuildContext's across async gaps • lib/presentation/widget/capture_bottomsheet.dart:357:33 • use_build_context_synchronously
-  error • The method 'pop' isn't defined for the type 'BuildContext' • lib/presentation/widget/capture_form_page.dart:139:46 • undefined_method
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widget/capture_form_page.dart:195:58 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widget/capture_form_page.dart:198:60 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widget/capture_form_page.dart:219:75 • deprecated_member_use
-warning • Unnecessary cast • lib/presentation/widget/capture_form_page.dart:386:60 • unnecessary_cast
-  error • The method 'File' isn't defined for the type '_CaptureFormPageState' • lib/presentation/widget/capture_form_page.dart:423:68 • undefined_method
-  error • The method 'pop' isn't defined for the type 'BuildContext' • lib/presentation/widget/capture_form_page.dart:480:67 • undefined_method
-   info • Unnecessary use of string interpolation • lib/presentation/widget/empty_list_session_dialog.dart:133:29 • unnecessary_string_interpolations
-   info • 'WillPopScope' is deprecated and shouldn't be used. Use PopScope instead. The Android predictive back feature will not work with WillPopScope. This feature was deprecated after v3.12.0-1.0.pre • lib/presentation/widget/loading_dialog.dart:40:12 • deprecated_member_use
-   info • Don't use 'BuildContext's across async gaps • lib/presentation/widget/loto_card.dart:114:37 • use_build_context_synchronously
-   info • Don't use 'BuildContext's across async gaps • lib/presentation/widget/sidebar.dart:30:21 • use_build_context_synchronously
-   info • Don't use 'BuildContext's across async gaps • lib/presentation/widget/sidebar.dart:40:21 • use_build_context_synchronously
-   info • Don't use 'BuildContext's across async gaps • lib/presentation/widget/sidebar.dart:50:21 • use_build_context_synchronously
-   info • Don't use 'BuildContext's across async gaps • lib/presentation/widget/sidebar.dart:60:21 • use_build_context_synchronously
-   info • Don't use 'BuildContext's across async gaps • lib/presentation/widget/sidebar.dart:74:15 • use_build_context_synchronously
-   info • Don't use 'BuildContext's across async gaps • lib/presentation/widget/sidebar.dart:75:15 • use_build_context_synchronously
+warning • Unused import: 'package:gardaloto/core/service_locator.dart' • lib/presentation/pages/account_page.dart:13:8 • unused_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/account_page.dart:132:53 • deprecated_member_use
+warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/account_page.dart:270:82 • unnecessary_non_null_assertion
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/account_page.dart:272:62 • deprecated_member_use
+warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/account_page.dart:273:82 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/account_page.dart:275:95 • unnecessary_non_null_assertion
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/account_page.dart:279:97 • deprecated_member_use
+warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/account_page.dart:281:80 • unnecessary_non_null_assertion
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/account_page.dart:287:75 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/account_page.dart:290:92 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/account_page.dart:313:67 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/account_page.dart:316:71 • deprecated_member_use
+warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/account_page.dart:326:84 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/account_page.dart:328:75 • unnecessary_non_null_assertion
+warning • The declaration '_buildGlassCard' isn't referenced • lib/presentation/pages/account_page.dart:435:10 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/account_page.dart:442:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/account_page.dart:444:52 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/account_page.dart:447:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/account_page.dart:467:35 • deprecated_member_use
+warning • Unused import: 'package:intl/intl.dart' • lib/presentation/pages/dashboard_page.dart:12:8 • unused_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:79:60 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:144:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:146:52 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:149:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:207:60 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:211:51 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block • lib/presentation/pages/dashboard_page.dart:328:25 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:358:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:425:75 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:435:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:435:99 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:442:75 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:452:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:452:99 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:459:75 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:522:94 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:523:96 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block • lib/presentation/pages/dashboard_page.dart:556:69 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentation/pages/dashboard_page.dart:557:84 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentation/pages/dashboard_page.dart:558:50 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentation/pages/dashboard_page.dart:562:79 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/presentation/pages/dashboard_page.dart:563:50 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:572:66 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:641:38 • deprecated_member_use
+warning • The value of the local variable 'index' isn't used • lib/presentation/pages/dashboard_page.dart:677:23 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:704:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:723:65 • deprecated_member_use
+   info • Unnecessary use of 'toList' in a spread • lib/presentation/pages/dashboard_page.dart:751:18 • unnecessary_to_list_in_spreads
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:823:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:841:64 • deprecated_member_use
+   info • Unnecessary use of 'toList' in a spread • lib/presentation/pages/dashboard_page.dart:853:18 • unnecessary_to_list_in_spreads
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:898:31 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:899:36 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/dashboard_page.dart:903:31 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/forgot_password_page.dart:98:64 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/forgot_password_page.dart:107:51 • deprecated_member_use
+   info • The import of 'dart:ui' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' • lib/presentation/pages/login_page.dart:8:8 • unnecessary_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/login_page.dart:84:72 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/login_page.dart:92:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/login_page.dart:106:72 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/login_page.dart:114:51 • deprecated_member_use
+warning • Unused import: 'package:gardaloto/presentation/widget/capture_form_page.dart' • lib/presentation/pages/loto_page.dart:11:8 • unused_import
+   info • Don't invoke 'print' in production code • lib/presentation/pages/loto_page.dart:49:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/pages/loto_page.dart:68:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/pages/loto_page.dart:77:7 • avoid_print
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_page.dart:320:60 • deprecated_member_use
+warning • The receiver can't be null, so the null-aware operator '?.' is unnecessary • lib/presentation/pages/loto_page.dart:367:48 • invalid_null_aware_operator
+warning • The receiver can't be null, so the null-aware operator '?.' is unnecessary • lib/presentation/pages/loto_page.dart:368:49 • invalid_null_aware_operator
+warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/loto_page.dart:377:67 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/loto_page.dart:386:55 • unnecessary_non_null_assertion
+warning • The operand can't be 'null', so the condition is always 'true' • lib/presentation/pages/loto_page.dart:392:33 • unnecessary_null_comparison
+   info • The local variable '_picker' starts with an underscore • lib/presentation/pages/loto_page.dart:542:27 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_picker' starts with an underscore • lib/presentation/pages/loto_page.dart:564:29 • no_leading_underscores_for_local_identifiers
+warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/loto_review_page.dart:298:49 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/loto_review_page.dart:419:64 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/loto_review_page.dart:420:68 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/loto_review_page.dart:423:63 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null • lib/presentation/pages/loto_review_page.dart:425:82 • unnecessary_non_null_assertion
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_review_page.dart:1006:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_review_page.dart:1007:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_review_page.dart:1012:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_review_page.dart:1028:47 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_review_page.dart:1029:52 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_review_page.dart:1030:60 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_sessions_page.dart:105:58 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_sessions_page.dart:147:109 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_sessions_page.dart:148:116 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_sessions_page.dart:169:107 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_sessions_page.dart:170:116 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_sessions_page.dart:211:107 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_sessions_page.dart:212:116 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_sessions_page.dart:262:117 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_sessions_page.dart:263:116 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_sessions_page.dart:283:117 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_sessions_page.dart:284:116 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_sessions_page.dart:449:79 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_sessions_page.dart:506:74 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_sessions_page.dart:508:93 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/loto_sessions_page.dart:526:71 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/update_password_page.dart:90:64 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/update_password_page.dart:99:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/update_password_page.dart:114:64 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/pages/update_password_page.dart:123:51 • deprecated_member_use
+warning • Unused import: 'package:gardaloto/data/models/user_model.dart' • lib/presentation/pages/user_management_page.dart:9:8 • unused_import
+   info • Don't invoke 'print' in production code • lib/presentation/widget/capture_form_page.dart:145:5 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/widget/capture_form_page.dart:151:9 • avoid_print
+   info • 'onPopInvoked' is deprecated and shouldn't be used. Use onPopInvokedWithResult instead. This feature was deprecated after v3.22.0-12.0.pre • lib/presentation/widget/capture_form_page.dart:190:9 • deprecated_member_use
+   info • Don't invoke 'print' in production code • lib/presentation/widget/capture_form_page.dart:232:19 • avoid_print
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widget/capture_form_page.dart:345:51 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block • lib/presentation/widget/capture_form_page.dart:463:39 • curly_braces_in_flow_control_structures
+   info • Don't invoke 'print' in production code • lib/presentation/widget/capture_form_page.dart:662:37 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/widget/capture_form_page.dart:682:39 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/widget/capture_form_page.dart:695:39 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/widget/capture_form_page.dart:699:39 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/widget/capture_form_page.dart:719:37 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/widget/capture_form_page.dart:722:39 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/widget/capture_form_page.dart:729:39 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/widget/capture_form_page.dart:741:39 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/widget/capture_form_page.dart:749:41 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/widget/capture_form_page.dart:768:39 • avoid_print
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widget/custom_action_chip.dart:24:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widget/glass_panel.dart:31:42 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widget/glass_panel.dart:33:62 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widget/glass_panel.dart:36:37 • deprecated_member_use
+   info • 'WillPopScope' is deprecated and shouldn't be used. Use PopScope instead. The Android predictive back feature will not work with WillPopScope. This feature was deprecated after v3.12.0-1.0.pre • lib/presentation/widget/loading_dialog.dart:41:12 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widget/loading_dialog.dart:60:41 • deprecated_member_use
+   info • The 'child' argument should be last in widget constructor invocations • lib/presentation/widget/loto_card.dart:39:37 • sort_child_properties_last
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widget/photo_overlay.dart:65:59 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widget/photo_overlay.dart:91:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widget/photo_overlay.dart:148:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widget/sidebar.dart:22:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widget/sidebar.dart:24:55 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widget/sidebar.dart:35:47 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widget/sidebar.dart:38:51 • deprecated_member_use
 

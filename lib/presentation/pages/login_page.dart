@@ -156,6 +156,16 @@ class _LoginPageState extends State<LoginPage> {
                           );
                         },
                       ),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: () {
+                          context.pushNamed('register');
+                        },
+                        child: const Text(
+                          "Don't have an account? Register",
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ),
                     ],
                   ),
                 ),

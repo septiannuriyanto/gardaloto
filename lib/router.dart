@@ -10,6 +10,7 @@ import 'package:gardaloto/domain/entities/loto_session.dart';
 import 'package:gardaloto/presentation/pages/ready_to_work_page.dart';
 import 'package:gardaloto/presentation/pages/forgot_password_page.dart';
 import 'package:gardaloto/presentation/pages/update_password_page.dart';
+import 'package:gardaloto/presentation/pages/register_page.dart';
 import 'package:gardaloto/presentation/pages/reset_callback_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gardaloto/core/service_locator.dart';
@@ -17,6 +18,10 @@ import 'package:gardaloto/presentation/cubit/manpower_cubit.dart';
 import 'package:gardaloto/presentation/cubit/storage_cubit.dart';
 import 'package:gardaloto/presentation/cubit/loto_cubit.dart';
 import 'package:gardaloto/presentation/pages/account_page.dart';
+import 'package:gardaloto/presentation/pages/control_panel_page.dart';
+import 'package:gardaloto/presentation/pages/user_management_page.dart';
+import 'package:gardaloto/presentation/pages/modify_user_page.dart';
+import 'package:gardaloto/domain/entities/user_entity.dart';
 import 'package:go_router/go_router.dart';
 
 final router = GoRouter(
@@ -42,6 +47,15 @@ final router = GoRouter(
       name: 'forgot_password',
       builder: (_, __) => const ForgotPasswordPage(),
     ),
+    GoRoute(
+      path: '/register',
+      name: 'register',
+      builder: (_, state) {
+        final nrp = state.extra as String?;
+        return RegisterPage(initialNrp: nrp);
+      },
+    ),
+
     GoRoute(
       path: '/update-password',
       name: 'update_password',
@@ -114,6 +128,31 @@ final router = GoRouter(
       path: '/ready',
       name: 'ready',
       builder: (_, __) => const ReadyToWorkPage(),
+    ),
+    GoRoute(
+      path: '/control-panel',
+      name: 'control_panel',
+      builder: (_, __) => const ControlPanelPage(),
+    ),
+    GoRoute(
+      path: '/user-management',
+      name: 'user_management',
+      builder: (context, state) => const UserManagementPage(),
+      routes: [
+        GoRoute(
+          path: 'modify-user',
+          name: 'modify_user',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>;
+            final user = extra['user'] as UserEntity;
+            final cubit = extra['cubit'] as ManpowerCubit;
+            return BlocProvider.value(
+              value: cubit,
+              child: ModifyUserPage(user: user),
+            );
+          },
+        ),
+      ],
     ),
   ],
 );

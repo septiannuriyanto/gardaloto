@@ -6,6 +6,7 @@ import 'package:gardaloto/domain/usecases/login_user.dart';
 import 'package:gardaloto/domain/usecases/logout_user.dart';
 import 'package:gardaloto/domain/usecases/update_profile_photo.dart';
 import 'package:gardaloto/domain/usecases/delete_profile_photo.dart';
+import 'package:gardaloto/domain/usecases/register_user.dart';
 import 'package:gardaloto/domain/usecases/reset_password.dart';
 import 'package:gardaloto/domain/usecases/update_password.dart';
 import 'package:gardaloto/domain/usecases/send_loto_report.dart';
@@ -26,6 +27,7 @@ import 'package:gardaloto/data/repositories/unit_repository_impl.dart';
 import 'package:gardaloto/presentation/cubit/unit_cubit.dart';
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:gardaloto/data/datasources/manpower_datasource.dart';
 
 final sl = GetIt.instance;
 
@@ -61,6 +63,7 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton(() => DeleteProfilePhoto(sl<AuthRepository>()));
   sl.registerLazySingleton(() => ResetPassword(sl<AuthRepository>()));
   sl.registerLazySingleton(() => UpdatePassword(sl<AuthRepository>()));
+  sl.registerLazySingleton(() => RegisterUser(sl<AuthRepository>()));
   sl.registerLazySingleton(() => SendLotoReport(sl<LotoRepository>()));
 
   // =========================
@@ -76,7 +79,9 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton(() => LotoCubit(sl<LotoRepository>()));
 
   // MANPOWER
-  final _manpowerRepo = ManpowerRepositoryImpl(sl<SupabaseClient>());
+  sl.registerLazySingleton(() => ManpowerDatasource(sl<SupabaseClient>()));
+  
+  final _manpowerRepo = ManpowerRepositoryImpl(sl<ManpowerDatasource>());
   await _manpowerRepo.init();
   sl.registerLazySingleton<ManpowerRepository>(() => _manpowerRepo);
   sl.registerFactory(() => ManpowerCubit(sl<ManpowerRepository>()));
@@ -103,6 +108,7 @@ Future<void> initServiceLocator() async {
       deleteProfilePhotoUseCase: sl<DeleteProfilePhoto>(),
       resetPasswordUseCase: sl<ResetPassword>(),
       updatePasswordUseCase: sl<UpdatePassword>(),
+      registerUserUseCase: sl<RegisterUser>(),
     ),
   );
 }
