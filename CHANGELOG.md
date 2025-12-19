@@ -19,3 +19,11 @@ All notable changes to this project will be documented in this file.
 - **Loading State**: Fixed an issue where the app would hang (endless loading) if a duplicate NRP was added.
 - **Overlay Bug**: Resolved missing logo in generated overlay images.
 - **Navigation**: Corrected routing paths for nested user management pages.
+
+
+### --------- GO LIVE BETA ---------
+
+
+## [1.0.1] - 2025-12-19
+
+- **Fixed Storage Duplicate Issue**: Fixed an issue where the app would show error 409 (duplicate) when there was a partial upload, usually when uploading when in lack of connectivity.
