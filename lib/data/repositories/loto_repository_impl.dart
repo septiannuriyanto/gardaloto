@@ -10,7 +10,6 @@ import 'package:gardaloto/domain/entities/loto_entity.dart';
 import 'package:gardaloto/domain/entities/loto_session.dart';
 import 'package:gardaloto/domain/repositories/loto_repository.dart';
 
-
 class LotoRepositoryImpl implements LotoRepository {
   static const _boxName = 'loto_records';
   late Box<LotoModel> _box;
@@ -67,11 +66,12 @@ class LotoRepositoryImpl implements LotoRepository {
 
   @override
   Future<void> deleteLocalSessionRecords(String sessionCode) async {
-    final keysToDelete = _box.values
-        .where((e) => e.sessionId == sessionCode)
-        .map((e) => e.timestampTaken.millisecondsSinceEpoch.toString())
-        .toList();
-    
+    final keysToDelete =
+        _box.values
+            .where((e) => e.sessionId == sessionCode)
+            .map((e) => e.timestampTaken.millisecondsSinceEpoch.toString())
+            .toList();
+
     await _box.deleteAll(keysToDelete);
   }
 
@@ -123,32 +123,36 @@ class LotoRepositoryImpl implements LotoRepository {
       // First, upload all images to Supabase Storage
       final imageUrls = <String>[];
       int uploadedCount = 0;
-      
+
       // Import image_utils for compression
-      // Note: Since I cannot easily add imports here without messing up the file structure if I use replace_file_content on a small chunk, 
+      // Note: Since I cannot easily add imports here without messing up the file structure if I use replace_file_content on a small chunk,
       // I will assume image_utils is available or I need to add the import.
       // Wait, I need to add the import first. I'll do that in a separate step or assume it's fine if I use the fully qualified name or just add the import now.
       // Actually, I should have added the import. Let me check imports.
       // I'll add the import in a separate tool call or just use the function if it's global (it is global in image_utils.dart).
       // But I need to import the file.
-      
+
       for (final record in records) {
         // Use unit code as filename instead of timestamp
-        final fileName = '${record.codeNumber}.png';
+        final fileName = '${record.codeNumber}.jpg';
         final filePath = '$imagePathPrefix/$fileName';
 
         // Upload the image file to Supabase Storage with the proper path
         // We use the already processed (resized & watermarked) image from local storage
         await _supabaseClient.storage
             .from('loto_records')
-            .upload(filePath, File(record.photoPath), fileOptions: const FileOptions(upsert: true));
+            .upload(
+              filePath,
+              File(record.photoPath),
+              fileOptions: const FileOptions(upsert: true),
+            );
 
         // Get the public URL for the uploaded image
         final imageUrl = _supabaseClient.storage
             .from('loto_records')
             .getPublicUrl(filePath);
         imageUrls.add(imageUrl);
-        
+
         uploadedCount++;
         onProgress?.call(uploadedCount, records.length);
       }
@@ -191,10 +195,9 @@ class LotoRepositoryImpl implements LotoRepository {
     if (date != null) {
       final startOfDay = DateTime(date.year, date.month, date.day);
       final endOfDay = startOfDay.add(const Duration(days: 1));
-      query = query.gte('created_at', startOfDay.toIso8601String()).lt(
-        'created_at',
-        endOfDay.toIso8601String(),
-      );
+      query = query
+          .gte('created_at', startOfDay.toIso8601String())
+          .lt('created_at', endOfDay.toIso8601String());
     }
 
     if (shift != null) {
@@ -208,7 +211,7 @@ class LotoRepositoryImpl implements LotoRepository {
     if (fuelman != null && fuelman.isNotEmpty) {
       query = query.eq('fuelman', fuelman);
     }
-    
+
     if (operatorName != null && operatorName.isNotEmpty) {
       query = query.eq('operator', operatorName);
     }
@@ -217,7 +220,7 @@ class LotoRepositoryImpl implements LotoRepository {
     final response = await query
         .order('created_at', ascending: false)
         .limit(limit);
-        
+
     return (response as List).map((e) => LotoSession.fromJson(e)).toList();
   }
 
@@ -229,7 +232,9 @@ class LotoRepositoryImpl implements LotoRepository {
         .eq('session_id', sessionCode)
         .order('timestamp_taken', ascending: true);
 
-    return (response as List).map((e) => LotoModel.fromJson(e).toEntity()).toList();
+    return (response as List)
+        .map((e) => LotoModel.fromJson(e).toEntity())
+        .toList();
   }
 
   @override
@@ -239,8 +244,8 @@ class LotoRepositoryImpl implements LotoRepository {
         .select()
         .eq('session_id', sessionCode)
         .count(CountOption.exact);
-    
-    // When using count, the response is a PostgrestResponse, but with select().count() 
+
+    // When using count, the response is a PostgrestResponse, but with select().count()
     // it returns a list of objects if we don't use head: true.
     // Actually, select(count: exact) returns the data AND the count.
     // To get just count, we can use count() directly or check the count property if available.
@@ -249,7 +254,7 @@ class LotoRepositoryImpl implements LotoRepository {
     // The count is in the `count` property of the response.
     // Wait, the return type of `await ...` is `List<Map<String, dynamic>>` usually, unless we use `.count()`.
     // Let's use `.count()` which returns `Future<int>`.
-    
+
     return await _supabaseClient
         .from('loto_records')
         .count(CountOption.exact)
@@ -296,14 +301,18 @@ class LotoRepositoryImpl implements LotoRepository {
 
       for (final record in records) {
         // Use unit code as filename instead of timestamp
-        final fileName = '${record.codeNumber}.png';
+        final fileName = '${record.codeNumber}.jpg';
         final filePath = '$imagePathPrefix/$fileName';
 
         // Upload the image file to Supabase Storage with the proper path
         // We use the already processed (resized & watermarked) image from local storage
         await _supabaseClient.storage
             .from('loto_records')
-            .upload(filePath, File(record.photoPath), fileOptions: const FileOptions(upsert: true));
+            .upload(
+              filePath,
+              File(record.photoPath),
+              fileOptions: const FileOptions(upsert: true),
+            );
 
         // Get the public URL for the uploaded image
         final imageUrl = _supabaseClient.storage
@@ -336,7 +345,6 @@ class LotoRepositoryImpl implements LotoRepository {
     }
   }
 
-
   @override
   Future<void> saveLastKnownLocation(double lat, double lng) async {
     final prefs = await SharedPreferences.getInstance();
@@ -356,7 +364,9 @@ class LotoRepositoryImpl implements LotoRepository {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getAchievementTrend({int daysBack = 30}) async {
+  Future<List<Map<String, dynamic>>> getAchievementTrend({
+    int daysBack = 30,
+  }) async {
     try {
       final data = await _supabaseClient.rpc(
         'get_loto_achievement_trend',
@@ -370,7 +380,9 @@ class LotoRepositoryImpl implements LotoRepository {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getWarehouseAchievement({int daysBack = 30}) async {
+  Future<List<Map<String, dynamic>>> getWarehouseAchievement({
+    int daysBack = 30,
+  }) async {
     try {
       final data = await _supabaseClient.rpc(
         'get_loto_achievement_warehouse',

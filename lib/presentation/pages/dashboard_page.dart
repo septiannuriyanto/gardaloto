@@ -307,26 +307,30 @@ class _DashboardViewState extends State<_DashboardView> {
                   horizontal: 16,
                   vertical: 4,
                 ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    value: state.selectedShift,
-                    isExpanded: true,
-                    dropdownColor: const Color(0xFF004e92),
-                    icon: const Icon(Icons.expand_more, color: Colors.white),
-                    style: const TextStyle(color: Colors.white),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 0,
-                        child: Text("Trend (Default)"),
-                      ),
-                      DropdownMenuItem(value: 1, child: Text("Shift 1 Only")),
-                      DropdownMenuItem(value: 2, child: Text("Shift 2 Only")),
-                      DropdownMenuItem(value: 3, child: Text("All Series")),
-                    ],
-                    onChanged: (val) {
-                      if (val != null)
-                        context.read<DashboardCubit>().updateFilter(shift: val);
-                    },
+                child: SizedBox(
+                  height: 36, // Match Period Button Height
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: state.selectedShift,
+                      isExpanded: true,
+                      isDense: true, // Compact
+                      dropdownColor: const Color(0xFF004e92),
+                      icon: const Icon(Icons.expand_more, color: Colors.white),
+                      style: const TextStyle(color: Colors.white, fontSize: 12), // Match font size
+                      items: const [
+                        DropdownMenuItem(
+                          value: 0,
+                          child: Text("Trend (Default)"),
+                        ),
+                        DropdownMenuItem(value: 1, child: Text("Shift 1 Only")),
+                        DropdownMenuItem(value: 2, child: Text("Shift 2 Only")),
+                        DropdownMenuItem(value: 3, child: Text("All Series")),
+                      ],
+                      onChanged: (val) {
+                        if (val != null)
+                          context.read<DashboardCubit>().updateFilter(shift: val);
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -351,7 +355,8 @@ class _DashboardViewState extends State<_DashboardView> {
       onTap: () => context.read<DashboardCubit>().updateFilter(period: value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        height: 36, // Explicit Height
+        padding: const EdgeInsets.symmetric(horizontal: 12), // Remove vertical padding as we use alignment/height
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color:
@@ -407,56 +412,93 @@ class _DashboardViewState extends State<_DashboardView> {
 
         // Visual Config
         final isAll = state.selectedShift == 3;
-        final double mainWidth = 4;
-        final double subWidth = isAll ? 1.5 : 4;
+        final double mainWidth = 2.0; // Even Thinner (User request)
+        final double subWidth = isAll ? 1.5 : 2.0;
         final double subOpacity = isAll ? 0.5 : 1.0;
 
-        // Trend (Avg) - Now Primary Blue Gradient
+        // Trend (Avg)
         if (showAvg) {
             bars.add(LineChartBarData(
               spots: spotsAvg, 
               isCurved: true, 
-              gradient: const LinearGradient(colors: [Color(0xFF4facfe), Color(0xFF00f2fe)]), // Cyan-Blue
+              gradient: const LinearGradient(colors: [Color(0xFF4facfe), Color(0xFF00f2fe)]), 
               barWidth: mainWidth, 
               isStrokeCapRound: true, 
-              dotData: FlDotData(show: true, checkToShowDot: _showDotOnlyOnAvg), 
+              dotData: FlDotData(
+                show: true, 
+                checkToShowDot: _showDotOnlyOnAvg,
+                getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                  radius: 3, // Smaller
+                  color: const Color(0xFF4facfe), 
+                  strokeWidth: 1.0,
+                  strokeColor: Colors.white, 
+                ),
+              ), 
               belowBarData: BarAreaData(
-                show: !isAll, // Only fill if isolated (Trend only)
-                gradient: LinearGradient(colors: [const Color(0xFF4facfe).withOpacity(0.3), Colors.transparent], begin: Alignment.topCenter, end: Alignment.bottomCenter)
+                show: !isAll, 
+                gradient: LinearGradient(
+                  colors: [const Color(0xFF4facfe).withOpacity(0.5), Colors.transparent], 
+                  begin: Alignment.topCenter, 
+                  end: Alignment.bottomCenter
+                ),
               ),
             ));
         }
 
-        // Shift 1 - Now Amber/Pink Gradient
+        // Shift 1 - Amber to Pink Gradient (User Request)
         if (showS1) {
            bars.add(LineChartBarData(
               spots: spots1, isCurved: true,
-              gradient: LinearGradient(
-                colors: [const Color(0xFFfa709a).withOpacity(subOpacity), const Color(0xFFfee140).withOpacity(subOpacity)]
-              ), // Pink-Gold (Amber-ish)
+              gradient: const LinearGradient(
+                colors: [Color(0xFFfee140), Color(0xFFfa709a)] // Amber -> Pink
+              ), 
               barWidth: subWidth, 
               isStrokeCapRound: true, 
-              dotData: const FlDotData(show: false),
+              dotData: FlDotData(
+                show: true,
+                getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                  radius: 3,
+                  color: const Color(0xFFFF3D00), // Red-Orange (User request "merah semi orange")
+                  strokeWidth: 1.0,
+                  strokeColor: Colors.white,
+                ),
+              ),
               belowBarData: BarAreaData(
-                show: !showAvg && !showS2, // Only show fill if isolated S1
-                gradient: LinearGradient(colors: [const Color(0xFFfa709a).withOpacity(0.3), Colors.transparent], begin: Alignment.topCenter, end: Alignment.bottomCenter)
+                show: !showAvg && !showS2, 
+                gradient: LinearGradient(
+                  colors: [const Color(0xFFfee140).withOpacity(0.5), Colors.transparent], 
+                  begin: Alignment.topCenter, 
+                  end: Alignment.bottomCenter
+                ),
               ),
            ));
         }
         
-        // Shift 2 - Now Purple/Magenta
+        // Shift 2 - Green to Yellow Gradient (User Request)
         if (showS2) {
            bars.add(LineChartBarData(
               spots: spots2, isCurved: true,
-              gradient: LinearGradient(
-                colors: [const Color(0xFFD500F9).withOpacity(subOpacity), const Color(0xFF8E2DE2).withOpacity(subOpacity)] // Magenta Accent -> Deep Purple
+              gradient: const LinearGradient(
+                colors: [Color(0xFF00E676), Color(0xFFFFEA00)] // Green -> Yellow
               ), 
               barWidth: subWidth, 
               isStrokeCapRound: true, 
-              dotData: const FlDotData(show: false),
+              dotData: FlDotData(
+                show: true,
+                getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                  radius: 3,
+                  color: const Color(0xFF00E676), // Bright Green (User request "hijau terang")
+                  strokeWidth: 1.0,
+                  strokeColor: Colors.white,
+                ),
+              ),
               belowBarData: BarAreaData(
-                show: !showAvg && !showS1, // Only show fill if isolated S2
-                gradient: LinearGradient(colors: [const Color(0xFFD500F9).withOpacity(0.3), Colors.transparent], begin: Alignment.topCenter, end: Alignment.bottomCenter)
+                show: !showAvg && !showS1, 
+                gradient: LinearGradient(
+                  colors: [const Color(0xFF00E676).withOpacity(0.5), Colors.transparent], 
+                  begin: Alignment.topCenter, 
+                  end: Alignment.bottomCenter
+                ),
               ),
            ));
         }
@@ -478,7 +520,6 @@ class _DashboardViewState extends State<_DashboardView> {
                 children: [
                   const Text('LOTO Achievement', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                   if (showAvg)
-                     // Trend using Blue Gradient colors for text/icon indication?
                      Row(children: [
                         Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [Color(0xFF4facfe), Color(0xFF00f2fe)]))),
                         const SizedBox(width: 4),
@@ -487,7 +528,7 @@ class _DashboardViewState extends State<_DashboardView> {
                 ],
               ),
               const SizedBox(height: 24),
-              // ... Chart Container ...
+              // Chart Container
               SizedBox(
                  height: 300,
                  child: Row(
@@ -524,7 +565,12 @@ class _DashboardViewState extends State<_DashboardView> {
                                 ),
                                 titlesData: FlTitlesData(
                                   leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, interval: 1, getTitlesWidget: (val, meta) => _bottomTitles(val, meta, state))),
+                                  bottomTitles: AxisTitles(sideTitles: SideTitles(
+                                    showTitles: true, 
+                                    reservedSize: 32, // Ensure space for "dd MMM"
+                                    interval: 1, 
+                                    getTitlesWidget: (val, meta) => _bottomTitles(val, meta, state)
+                                  )),
                                   topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                                   rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                                 ),
@@ -539,24 +585,11 @@ class _DashboardViewState extends State<_DashboardView> {
                                        return touchedSpots.map((spot) {
                                           final val = spot.y.toInt();
                                           String label = '';
-                                          // Identify series based on insertion order and show flags
-                                          // Order: Avg (if show), S1 (if show), S2 (if show)
-                                          // Actually, insertion order matters.
-                                          // My code adds: Avg (0), S1 (1), S2 (2) if all shown.
-                                          // If Avg hidden: S1 (0), S2 (1).
-                                          // This dynamic index is tricky.
-                                          // Let's rely on Color to match or just Generic Labels if hard.
-                                          // Easier: Map barIndex to specific series if we know the order we added them.
-                                          // We added: Avg -> S1 -> S2.
-                                          // So if showAvg is true, Index 0 is Trend.
-                                          // If showAvg false, Index 0 is S1.
-                                          
                                           int relativeIndex = spot.barIndex;
                                           if (showAvg) {
                                             if (relativeIndex == 0) label = 'Trend';
                                             else if (showS1 && relativeIndex == 1) label = 'Shift 1';
-                                            else label = 'Shift 2'; // Roughly correct given the combinations
-                                            // Edge case: ShowAvg + ShowS2 (no S1). Index 1 is S2.
+                                            else label = 'Shift 2'; 
                                             if (showAvg && !showS1 && relativeIndex == 1) label = 'Shift 2';
                                           } else {
                                             if (showS1 && relativeIndex == 0) label = 'Shift 1';
@@ -593,17 +626,17 @@ class _DashboardViewState extends State<_DashboardView> {
                       const SizedBox(width: 16)
                    ],
                    if (showS1) ...[
-                      _buildLegendItem(const Color(0xFFfa709a), 'Shift 1'), 
+                      _buildLegendItem(const Color(0xFFFF3D00), 'Shift 1'), 
                       const SizedBox(width: 16)
                    ],
                    if (showS2) ...[
-                      _buildLegendItem(const Color(0xFFD500F9), 'Shift 2'), 
+                      _buildLegendItem(const Color(0xFF00E676), 'Shift 2'), 
                    ],
-                ],
-              ),
             ],
           ),
-        );
+        ],
+      ),
+    );
       },
     );
   }
@@ -615,13 +648,15 @@ class _DashboardViewState extends State<_DashboardView> {
   Widget _bottomTitles(double value, TitleMeta meta, DashboardState state) {
     const style = TextStyle(fontSize: 10, color: Colors.white70);
     String text = '';
-    if (state.selectedPeriod == DashboardPeriod.week) {
-      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      int idx = value.toInt() - 1;
-      if (idx >= 0 && idx < 7) text = days[idx];
-    } else {
-      if (value % 2 == 0 || value % 2 == 1) text = value.toInt().toString();
+    int idx = value.toInt() - 1;
+
+    if (idx >= 0 && idx < state.shift1Data.length) {
+       final item = state.shift1Data[idx];
+       if (item['date'] is DateTime) {
+         text = DateFormat('dd').format(item['date']);
+       }
     }
+
     return SideTitleWidget(
       axisSide: meta.axisSide,
       child: Text(text, style: style),
@@ -778,9 +813,7 @@ class _DashboardViewState extends State<_DashboardView> {
                 final item = entry.value;
                 final label = item['label'];
                 final value = (item['value'] as num).toDouble();
-                final displayValue = item.containsKey('display_count') 
-                    ? '${item['display_count']} Sessions' 
-                    : '${value.toInt()}%';
+                final displayValue = '${value.toInt()}%';
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),

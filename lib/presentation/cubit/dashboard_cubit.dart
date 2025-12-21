@@ -62,20 +62,35 @@ class DashboardCubit extends Cubit<DashboardState> {
 
   Future<void> _fetchAndSave(SharedPreferences prefs) async {
        try {
-         // Insight 1: Loto Trend
+         // Determine range based on current selection
+         // If user wants Week, we specifically fetch 7 days for Warehouse/NRP to match label
+         // But we ALWAYS fetch 30 days for Loto Trend to keep the chart scrollable/rich.
+         
+         // 1. Loto Trend (Always 30 days for chart history)
          final lotoData = await lotoRepo.getAchievementTrend(daysBack: 30);
-         // Insight 2: Warehouse (RPC)
-         final warehouseData = await lotoRepo.getWarehouseAchievement(daysBack: 30);
-         // Insight 3: NRP (RPC)
-         final nrpData = await lotoRepo.getNrpRanking(daysBack: 30);
+         
+         // 2. Warehouse & NRP (Context-aware)
+         // Calculate days back based on period. Default to 30 if null.
+         int daysBack = state.selectedPeriod == DashboardPeriod.week ? 7 : 30;
+         
+         final warehouseData = await lotoRepo.getWarehouseAchievement(daysBack: daysBack);
+         final nrpData = await lotoRepo.getNrpRanking(daysBack: daysBack);
+         
+         // Cache with specific key for the period to avoid mixing Week/Month data
+         final periodKey = state.selectedPeriod == DashboardPeriod.week ? 'week' : 'month';
+         final cacheKey = 'dashboard_data_$periodKey';
          
          final cacheMap = {
-           'loto': lotoData,
+           'loto': lotoData, 
            'warehouse': warehouseData,
            'nrp': nrpData,
+           'period': periodKey,
          };
          
+         await prefs.setString(cacheKey, jsonEncode(cacheMap));
+         // We also save to generic 'dashboard_data' for backward compat or initial load
          await prefs.setString('dashboard_data', jsonEncode(cacheMap));
+         
          await prefs.setInt('last_dashboard_load', DateTime.now().millisecondsSinceEpoch);
          
          _processAndEmit(lotoData, warehouseData, nrpData);
@@ -91,23 +106,14 @@ class DashboardCubit extends Cubit<DashboardState> {
       List<Map<String, dynamic>> nrpRawData,
   ) {
     // 1. Process LOTO Data (buckets S1/S2)
+    // We always have 30 days of data here from lotoRawData
+    // We filter visually based on daysToShow
     List<Map<String, dynamic>> s1 = [];
     List<Map<String, dynamic>> s2 = [];
     
-    int daysToShow = 7;
-    if (state.selectedPeriod == DashboardPeriod.month) {
-       daysToShow = 30; 
-    }
+    int daysToShow = state.selectedPeriod == DashboardPeriod.week ? 7 : 30;
     
-    final cutoff = DateTime.now().subtract(Duration(days: daysToShow));
-    final allDates = lotoRawData
-        .map((e) => e['date'] as String)
-        .toSet()
-        .map((e) => DateTime.parse(e))
-        .where((d) => d.isAfter(cutoff))
-        .toList();
-    allDates.sort();
-
+    // ... Date buckets ...
     List<DateTime> dateRange = [];
     for (int i = daysToShow - 1; i >= 0; i--) {
       final d = DateTime.now().subtract(Duration(days: i));
@@ -118,44 +124,39 @@ class DashboardCubit extends Cubit<DashboardState> {
     for (final date in dateRange) {
         final dateStr = "${date.year}-${date.month.toString().padLeft(2,'0')}-${date.day.toString().padLeft(2,'0')}";
         
-        // Find S1
         final entryS1 = lotoRawData.firstWhere(
             (e) => e['date'] == dateStr && e['shift'] == 1, 
             orElse: () => <String, dynamic>{},
         );
         double valS1 = entryS1.isNotEmpty ? (entryS1['percentage'] as num).toDouble() : 0.0;
         
-        // Find S2
         final entryS2 = lotoRawData.firstWhere(
             (e) => e['date'] == dateStr && e['shift'] == 2, 
             orElse: () => <String, dynamic>{},
         );
         double valS2 = entryS2.isNotEmpty ? (entryS2['percentage'] as num).toDouble() : 0.0;
         
-        s1.add({'day': dayIndex, 'count': valS1});
-        s2.add({'day': dayIndex, 'count': valS2});
+        s1.add({'day': dayIndex, 'count': valS1, 'date': date});
+        s2.add({'day': dayIndex, 'count': valS2, 'date': date});
         dayIndex++;
     }
 
     // 2. Process Warehouse Data
-    // RPC returns: warehouse_code, percentage
+    // RPC data is already pre-filtered by _fetchAndSave (7 or 30 days)
     List<Map<String, dynamic>> wData = warehouseRawData.map((e) => {
       'label': e['warehouse_code'] ?? 'Unknown',
       'value': (e['percentage'] as num).toDouble(),
     }).toList();
-    // Sort Descending
     wData.sort((a, b) => (b['value'] as double).compareTo(a['value'] as double));
     
     // 3. Process NRP Data
-    // RPC returns: nrp, name, percentage, loto_count, verification_count
-    // We display Achievement % directly.
-
+    // Also pre-filtered
     List<Map<String, dynamic>> nData = nrpRawData.map((e) => {
       'label': e['name'] ?? e['nrp'] ?? 'Unknown',
       'value': (e['percentage'] as num).toDouble(),
+      'display_count': e.containsKey('loto_count') ? '${e['loto_count']} Records' : null,
     }).toList();
     
-    // Sort Descending
     nData.sort((a, b) => (b['value'] as double).compareTo(a['value'] as double));
 
     emit(state.copyWith(

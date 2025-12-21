@@ -12,8 +12,8 @@ class LotoCard extends StatelessWidget {
   final bool isProcessing; // New prop
 
   const LotoCard({
-    super.key, 
-    required this.entity, 
+    super.key,
+    required this.entity,
     this.onImageTap,
     this.isProcessing = false,
   });
@@ -45,10 +45,10 @@ class LotoCard extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               SizedBox(
-                                width: 24, 
-                                height: 24, 
+                                width: 24,
+                                height: 24,
                                 child: CircularProgressIndicator(
-                                  strokeWidth: 2, 
+                                  strokeWidth: 2,
                                   color: Colors.white54,
                                 ),
                               ),
@@ -56,7 +56,7 @@ class LotoCard extends StatelessWidget {
                               Text(
                                 "Processing",
                                 style: TextStyle(
-                                  fontSize: 10, 
+                                  fontSize: 10,
                                   color: Colors.white54,
                                 ),
                               ),
@@ -69,19 +69,21 @@ class LotoCard extends StatelessWidget {
                     final file = File(entity.photoPath);
                     if (file.existsSync()) {
                       return GestureDetector(
-                        onTap: onImageTap ?? () {
-                          if (context.mounted) {
-                            showDialog(
-                              context: context,
-                              builder:
-                                  (context) => Dialog(
-                                    child: Image.file(file),
-                                    backgroundColor: Colors.transparent,
-                                    insetPadding: const EdgeInsets.all(12),
-                                  ),
-                            );
-                          }
-                        },
+                        onTap:
+                            onImageTap ??
+                            () {
+                              if (context.mounted) {
+                                showDialog(
+                                  context: context,
+                                  builder:
+                                      (context) => Dialog(
+                                        child: Image.file(file),
+                                        backgroundColor: Colors.transparent,
+                                        insetPadding: const EdgeInsets.all(12),
+                                      ),
+                                );
+                              }
+                            },
                         child: Hero(
                           tag: entity.photoPath,
                           child: ClipRRect(
@@ -114,7 +116,9 @@ class LotoCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             entity.codeNumber,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -152,17 +156,21 @@ class LotoCard extends StatelessWidget {
                             if (confirm == true) {
                               try {
                                 if (context.mounted) {
-                                   await context.read<LotoCubit>().delete(entity);
-                                   if (context.mounted) {
-                                     ScaffoldMessenger.of(context).showSnackBar(
-                                       const SnackBar(content: Text('Deleted')),
-                                     );
-                                   }
+                                  await context.read<LotoCubit>().delete(
+                                    entity,
+                                  );
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Deleted')),
+                                    );
+                                  }
                                 }
                               } catch (e) {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Delete failed: $e')),
+                                    SnackBar(
+                                      content: Text('Delete failed: $e'),
+                                    ),
                                   );
                                 }
                               }
@@ -182,6 +190,17 @@ class LotoCard extends StatelessWidget {
                       "Time: ${entity.timestamp}",
                       style: const TextStyle(fontSize: 11, color: Colors.grey),
                     ),
+                    if (!entity.photoPath.startsWith('http'))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          "Size: ${_getFileSize(entity.photoPath)}",
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.cyanAccent,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -190,5 +209,18 @@ class LotoCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _getFileSize(String path) {
+    try {
+      final file = File(path);
+      if (!file.existsSync()) return "";
+      int bytes = file.lengthSync();
+      if (bytes < 1024) return "$bytes B";
+      if (bytes < 1024 * 1024) return "${(bytes / 1024).toStringAsFixed(1)} KB";
+      return "${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB";
+    } catch (e) {
+      return "";
+    }
   }
 }
