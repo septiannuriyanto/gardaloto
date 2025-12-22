@@ -72,4 +72,17 @@ abstract class LotoRepository {
   /// Get the max session code from loto_verification table
   /// Returns a big int like YYMMDDSSSS or null
   Future<int?> getLastVerificationSessionCode();
+
+  /// Fetches daily achievement for a specific fuelman (RPC get_fuelman_daily_achievement).
+  Future<List<Map<String, dynamic>>> getFuelmanDailyAchievement(
+    String nrp, {
+    int daysBack = 30,
+  });
+
+  /// Fetches reconciliation list for a specific fuelman/date/shift (RPC get_fuelman_reconciliation).
+  Future<List<Map<String, dynamic>>> getFuelmanReconciliation(
+    String nrp,
+    DateTime date,
+    int shift,
+  );
 }

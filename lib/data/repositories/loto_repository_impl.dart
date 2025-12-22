@@ -457,4 +457,40 @@ class LotoRepositoryImpl implements LotoRepository {
       return null;
     }
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> getFuelmanDailyAchievement(
+    String nrp, {
+    int daysBack = 30,
+  }) async {
+    try {
+      final data = await _supabaseClient.rpc(
+        'get_fuelman_daily_achievement',
+        params: {'p_nrp': nrp, 'days_back': daysBack},
+      );
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      print('Error fetching fuelman daily achievement: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getFuelmanReconciliation(
+    String nrp,
+    DateTime date,
+    int shift,
+  ) async {
+    try {
+      final dateStr = date.toIso8601String().split('T')[0]; // "YYYY-MM-DD"
+      final data = await _supabaseClient.rpc(
+        'get_fuelman_reconciliation',
+        params: {'p_nrp': nrp, 'p_date': dateStr, 'p_shift': shift},
+      );
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      print('Error fetching fuelman reconciliation: $e');
+      return [];
+    }
+  }
 }

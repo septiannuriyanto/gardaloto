@@ -191,6 +191,7 @@ class DashboardCubit extends Cubit<DashboardState> {
             .map(
               (e) => {
                 'label': e['name'] ?? e['nrp'] ?? 'Unknown',
+                'nrp': e['nrp'], // Added for navigation
                 'value': (e['percentage'] as num).toDouble(),
                 'display_count':
                     e.containsKey('loto_count')

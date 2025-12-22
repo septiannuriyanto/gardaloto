@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:gardaloto/core/service_locator.dart';
 import 'package:gardaloto/domain/repositories/loto_repository.dart';
+import 'package:gardaloto/presentation/pages/achievement_fuelman_detail_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -1069,70 +1070,89 @@ class _DashboardViewState extends State<_DashboardView> {
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header Row: Name & Value
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              label,
+                  child: InkWell(
+                    onTap: () {
+                      final nrp = item['nrp'];
+                      if (nrp != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => AchievementFuelmanDetailPage(
+                                  nrp: nrp,
+                                  name: label,
+                                ),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Cannot view details: NRP is missing',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header Row: Name & Value
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                label,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: Colors.white,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Text(
+                              displayValue,
                               style: const TextStyle(
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 13,
                                 color: Colors.white,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          Text(
-                            displayValue,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      // Progress Bar
-                      Stack(
-                        children: [
-                          Container(
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                          ),
-                          FractionallySizedBox(
-                            widthFactor: (value / 100).clamp(0.0, 1.0),
-                            child: Container(
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        // Progress Bar
+                        Stack(
+                          children: [
+                            Container(
                               height: 12,
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Colors.purpleAccent,
-                                    Colors.deepPurpleAccent,
-                                  ],
-                                ),
+                                color: Colors.white.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(6),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.purpleAccent.withOpacity(0.4),
-                                    blurRadius: 6,
-                                  ),
-                                ],
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                            FractionallySizedBox(
+                              widthFactor: (value / 100).clamp(0.0, 1.0),
+                              child: Container(
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Colors.purpleAccent,
+                                      Colors.deepPurpleAccent,
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 );
               }).toList(),
