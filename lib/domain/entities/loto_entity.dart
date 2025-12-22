@@ -5,6 +5,7 @@ class LotoEntity {
   final double latitude;
   final double longitude;
   final String sessionId;
+  final String? thumbnailUrl;
 
   LotoEntity({
     required this.codeNumber,
@@ -13,6 +14,7 @@ class LotoEntity {
     required this.latitude,
     required this.longitude,
     required this.sessionId,
+    this.thumbnailUrl,
   });
 
   Map<String, dynamic> toJson() {
@@ -23,17 +25,19 @@ class LotoEntity {
       'latitude': latitude,
       'longitude': longitude,
       'session_id': sessionId,
+      'thumbnail_url': thumbnailUrl,
     };
   }
 
-  static LotoEntity fromJson(Map<String, dynamic> json) {
+  factory LotoEntity.fromJson(Map<String, dynamic> json) {
     return LotoEntity(
       codeNumber: json['code_number'] as String,
       photoPath: json['photo_path'] as String,
-      timestamp: DateTime.parse(json['timestamp_taken'] as String),
+      timestamp: DateTime.parse(json['timestamp'] as String),
       latitude: json['latitude'] as double,
       longitude: json['longitude'] as double,
       sessionId: json['session_id'] as String,
+      thumbnailUrl: json['thumbnail_url'] as String?,
     );
   }
 }

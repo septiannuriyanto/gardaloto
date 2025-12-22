@@ -14,6 +14,10 @@ class LotoModelAdapter extends TypeAdapter<LotoModel> {
     final longitude = reader.readDouble();
     final sessionId = reader.readString();
 
+    // We will use a boolean flag for nullable string manually
+    final hasThumbnail = reader.readBool();
+    final thumbnailUrl = hasThumbnail ? reader.readString() : null;
+
     return LotoModel(
       codeNumber: codeNumber,
       photoPath: photoPath,
@@ -21,6 +25,7 @@ class LotoModelAdapter extends TypeAdapter<LotoModel> {
       latitude: latitude,
       longitude: longitude,
       sessionId: sessionId,
+      thumbnailUrl: thumbnailUrl,
     );
   }
 
@@ -32,5 +37,12 @@ class LotoModelAdapter extends TypeAdapter<LotoModel> {
     writer.writeDouble(obj.latitude);
     writer.writeDouble(obj.longitude);
     writer.writeString(obj.sessionId);
+
+    if (obj.thumbnailUrl != null) {
+      writer.writeBool(true);
+      writer.writeString(obj.thumbnailUrl!);
+    } else {
+      writer.writeBool(false);
+    }
   }
 }

@@ -9,6 +9,7 @@ import 'package:gardaloto/data/models/loto_model_adapter.dart';
 import 'package:gardaloto/domain/entities/loto_entity.dart';
 import 'package:gardaloto/domain/entities/loto_session.dart';
 import 'package:gardaloto/domain/repositories/loto_repository.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 class LotoRepositoryImpl implements LotoRepository {
   static const _boxName = 'loto_records';
@@ -121,7 +122,7 @@ class LotoRepositoryImpl implements LotoRepository {
       final imagePathPrefix = '$year/$month/$day/$shift/$warehouse';
 
       // First, upload all images to Supabase Storage
-      final imageUrls = <String>[];
+      final imageUrls = <Map<String, String?>>[];
       int uploadedCount = 0;
 
       // Import image_utils for compression
@@ -135,10 +136,12 @@ class LotoRepositoryImpl implements LotoRepository {
       for (final record in records) {
         // Use unit code as filename instead of timestamp
         final fileName = '${record.codeNumber}.jpg';
-        final filePath = '$imagePathPrefix/$fileName';
+        final fileNameThumb = '${record.codeNumber}-thumbnail.jpg';
 
-        // Upload the image file to Supabase Storage with the proper path
-        // We use the already processed (resized & watermarked) image from local storage
+        final filePath = '$imagePathPrefix/$fileName';
+        final filePathThumb = '$imagePathPrefix/$fileNameThumb';
+
+        // 1. Upload Original Image
         await _supabaseClient.storage
             .from('loto_records')
             .upload(
@@ -147,11 +150,43 @@ class LotoRepositoryImpl implements LotoRepository {
               fileOptions: const FileOptions(upsert: true),
             );
 
-        // Get the public URL for the uploaded image
+        // 2. Generate and Upload Thumbnail
+        // Generate a thumbnail with width ~300px
+        final thumbnailFile = await FlutterImageCompress.compressAndGetFile(
+          record.photoPath,
+          record.photoPath.replaceAll('.jpg', '_thumb.jpg'),
+          minWidth: 150,
+          minHeight: 150,
+          quality: 50, // Target ~10KB size
+        );
+
+        String? thumbUrl;
+
+        if (thumbnailFile != null) {
+          // Upload Thumbnail
+          await _supabaseClient.storage
+              .from('loto_records')
+              .upload(
+                filePathThumb,
+                File(thumbnailFile.path),
+                fileOptions: const FileOptions(upsert: true),
+              );
+
+          // Get Public URL for Thumbnail
+          thumbUrl = _supabaseClient.storage
+              .from('loto_records')
+              .getPublicUrl(filePathThumb);
+
+          // Clean up temporary thumbnail file
+          await File(thumbnailFile.path).delete();
+        }
+
+        // Get the public URL for the uploaded original image
         final imageUrl = _supabaseClient.storage
             .from('loto_records')
             .getPublicUrl(filePath);
-        imageUrls.add(imageUrl);
+
+        imageUrls.add({'original': imageUrl, 'thumbnail': thumbUrl});
 
         uploadedCount++;
         onProgress?.call(uploadedCount, records.length);
@@ -170,7 +205,8 @@ class LotoRepositoryImpl implements LotoRepository {
                   ...e.value.toJson(),
                   'session_id':
                       session.nomor, // Add session_id from loto_sessions
-                  'photo_path': imageUrls[e.key],
+                  'photo_path': imageUrls[e.key]['original'],
+                  'thumbnail_url': imageUrls[e.key]['thumbnail'],
                 },
               )
               .toList();
@@ -406,6 +442,19 @@ class LotoRepositoryImpl implements LotoRepository {
     } catch (e) {
       print('Error fetching nrp ranking: $e');
       return [];
+    }
+  }
+
+  @override
+  Future<int?> getLastVerificationSessionCode() async {
+    try {
+      final data = await _supabaseClient.rpc('get_max_session_code');
+      // data might be null if no records, or the bigint value
+      if (data == null) return null;
+      return data is int ? data : int.tryParse(data.toString());
+    } catch (e) {
+      print('Error fetching max session code: $e');
+      return null;
     }
   }
 }

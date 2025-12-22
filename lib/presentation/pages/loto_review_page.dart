@@ -26,6 +26,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:gardaloto/presentation/widget/generic_error_view.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:gardaloto/core/constants.dart';
 
 class LotoReviewPage extends StatelessWidget {
   final LotoSession session;
@@ -136,7 +137,7 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
                 icon: const Icon(Icons.refresh, color: Colors.white),
                 tooltip: 'Refresh',
                 onPressed: () {
-                   context.read<LotoCubit>().loadReviewSession(widget.session);
+                  context.read<LotoCubit>().loadReviewSession(widget.session);
                 },
               );
             },
@@ -296,14 +297,14 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
             } else if (state is LotoLoading) {
               return _buildSkeletonLoader();
             } else if (state is LotoError) {
-               return AppBackground(
-                 child: GenericErrorView(
-                   message: state.message,
-                   onRefresh: () {
-                     context.read<LotoCubit>().loadReviewSession(widget.session);
-                   },
-                 ),
-               );
+              return AppBackground(
+                child: GenericErrorView(
+                  message: state.message,
+                  onRefresh: () {
+                    context.read<LotoCubit>().loadReviewSession(widget.session);
+                  },
+                ),
+              );
             }
 
             session ??= widget.session;
@@ -794,7 +795,9 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
                                                     fit: BoxFit.cover,
                                                   )
                                                   : CachedNetworkImage(
-                                                    imageUrl: record.photoPath,
+                                                    imageUrl:
+                                                        record.thumbnailUrl ??
+                                                        record.photoPath,
                                                     fit: BoxFit.cover,
                                                     placeholder:
                                                         (
@@ -815,6 +818,43 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
                                                               Icons.error,
                                                             ),
                                                   ),
+
+                                              // Debug Indicator for Thumbnail
+                                              if (!isLocal &&
+                                                  record.thumbnailUrl != null &&
+                                                  kDebugShowThumbnailIndicator)
+                                                Positioned(
+                                                  top: 4,
+                                                  right: 4,
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 4,
+                                                          vertical: 2,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.green,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            4,
+                                                          ),
+                                                      border: Border.all(
+                                                        color: Colors.white,
+                                                        width: 1,
+                                                      ),
+                                                    ),
+                                                    child: const Text(
+                                                      'THUMB',
+                                                      style: TextStyle(
+                                                        fontSize: 8,
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+
                                               Positioned(
                                                 bottom: 0,
                                                 left: 0,

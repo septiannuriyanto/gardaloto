@@ -7,6 +7,7 @@ class LotoModel {
   final double latitude;
   final double longitude;
   final String sessionId;
+  final String? thumbnailUrl;
 
   LotoModel({
     required this.codeNumber,
@@ -15,6 +16,7 @@ class LotoModel {
     required this.latitude,
     required this.longitude,
     required this.sessionId,
+    this.thumbnailUrl,
   });
 
   // ===============================
@@ -28,6 +30,7 @@ class LotoModel {
       latitude: (json['latitude'] as num).toDouble(),
       longitude: (json['longitude'] as num).toDouble(),
       sessionId: json['session_id'] as String,
+      thumbnailUrl: json['thumbnail_url'] as String?,
     );
   }
 
@@ -42,6 +45,7 @@ class LotoModel {
       'latitude': latitude,
       'longitude': longitude,
       'session_id': sessionId,
+      'thumbnail_url': thumbnailUrl,
     };
   }
 
@@ -56,6 +60,7 @@ class LotoModel {
       latitude: entity.latitude,
       longitude: entity.longitude,
       sessionId: entity.sessionId,
+      thumbnailUrl: entity.thumbnailUrl,
     );
   }
 
@@ -67,6 +72,7 @@ class LotoModel {
       latitude: latitude,
       longitude: longitude,
       sessionId: sessionId,
+      thumbnailUrl: thumbnailUrl,
     );
   }
 }

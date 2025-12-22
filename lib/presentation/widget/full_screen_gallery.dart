@@ -34,12 +34,12 @@ class _FullScreenGalleryState extends State<FullScreenGallery> {
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
     _scrollController = ScrollController();
-    
+
     // Initial scroll to center active item
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToIndex(_currentIndex);
     });
-    
+
     _startFadeTimer();
   }
 
@@ -48,10 +48,10 @@ class _FullScreenGalleryState extends State<FullScreenGallery> {
       double itemWidth = 68.0; // 60 width + 8 margin
       double screenWidth = MediaQuery.of(context).size.width;
       double offset = (index * itemWidth) - (screenWidth / 2) + (itemWidth / 2);
-      
+
       // Clamp offset logic is handled by ScrollController mostly, but good to be safe?
       // animateTo clamps automatically.
-      
+
       _scrollController.animateTo(
         offset,
         duration: const Duration(milliseconds: 300),
@@ -77,7 +77,7 @@ class _FullScreenGalleryState extends State<FullScreenGallery> {
   void _onTap() {
     // Toggle or reset timer on tap
     if (_showArrows) {
-      // If showing, maybe hide immediately or just reset? 
+      // If showing, maybe hide immediately or just reset?
       // User said "transparan saat 2 detik pertama di zoom yang akan fade out".
       // Usually tapping toggles visibility.
       _startFadeTimer();
@@ -119,22 +119,25 @@ class _FullScreenGalleryState extends State<FullScreenGallery> {
               builder: (BuildContext context, int index) {
                 final record = widget.records[index];
                 final isLocal = !record.photoPath.startsWith('http');
-                final imageProvider = isLocal
-                    ? FileImage(File(record.photoPath))
-                    : CachedNetworkImageProvider(record.photoPath);
+                final imageProvider =
+                    isLocal
+                        ? FileImage(File(record.photoPath))
+                        : CachedNetworkImageProvider(record.photoPath);
 
                 return PhotoViewGalleryPageOptions(
                   imageProvider: imageProvider as ImageProvider,
                   initialScale: PhotoViewComputedScale.contained,
                   minScale: PhotoViewComputedScale.contained,
                   maxScale: PhotoViewComputedScale.covered * 2,
-                  heroAttributes: PhotoViewHeroAttributes(tag: record.photoPath),
+                  heroAttributes: PhotoViewHeroAttributes(
+                    tag: record.photoPath,
+                  ),
                 );
               },
               itemCount: widget.records.length,
-              loadingBuilder: (context, event) => const Center(
-                child: CircularProgressIndicator(),
-              ),
+              loadingBuilder:
+                  (context, event) =>
+                      const Center(child: CircularProgressIndicator()),
               backgroundDecoration: const BoxDecoration(color: Colors.black),
               pageController: _pageController,
               onPageChanged: _onPageChanged,
@@ -149,7 +152,11 @@ class _FullScreenGalleryState extends State<FullScreenGallery> {
                 opacity: _showArrows ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 300),
                 child: IconButton(
-                  icon: const Icon(Icons.chevron_left, color: Colors.white, size: 48),
+                  icon: const Icon(
+                    Icons.chevron_left,
+                    color: Colors.white,
+                    size: 48,
+                  ),
                   onPressed: () {
                     _pageController.previousPage(
                       duration: const Duration(milliseconds: 300),
@@ -169,7 +176,11 @@ class _FullScreenGalleryState extends State<FullScreenGallery> {
                 opacity: _showArrows ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 300),
                 child: IconButton(
-                  icon: const Icon(Icons.chevron_right, color: Colors.white, size: 48),
+                  icon: const Icon(
+                    Icons.chevron_right,
+                    color: Colors.white,
+                    size: 48,
+                  ),
                   onPressed: () {
                     _pageController.nextPage(
                       duration: const Duration(milliseconds: 300),
@@ -180,7 +191,7 @@ class _FullScreenGalleryState extends State<FullScreenGallery> {
                 ),
               ),
             ),
-            
+
           // Bottom Controls (Thumbnails & Caption)
           Positioned(
             bottom: 0,
@@ -208,7 +219,7 @@ class _FullScreenGalleryState extends State<FullScreenGallery> {
                           final record = widget.records[index];
                           final isLocal = !record.photoPath.startsWith('http');
                           final isSelected = _currentIndex == index;
-                          
+
                           return GestureDetector(
                             onTap: () {
                               _pageController.jumpToPage(index);
@@ -218,24 +229,39 @@ class _FullScreenGalleryState extends State<FullScreenGallery> {
                               width: 60,
                               margin: const EdgeInsets.symmetric(horizontal: 4),
                               decoration: BoxDecoration(
-                                border: isSelected
-                                    ? Border.all(color: Colors.white, width: 2)
-                                    : null,
+                                border:
+                                    isSelected
+                                        ? Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        )
+                                        : null,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(6),
-                                child: isLocal
-                                    ? Image.file(
-                                        File(record.photoPath),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : CachedNetworkImage(
-                                        imageUrl: record.photoPath,
-                                        fit: BoxFit.cover,
-                                        placeholder: (context, url) => Container(color: Colors.grey[800]),
-                                        errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.white),
-                                      ),
+                                child:
+                                    isLocal
+                                        ? Image.file(
+                                          File(record.photoPath),
+                                          fit: BoxFit.cover,
+                                        )
+                                        : CachedNetworkImage(
+                                          imageUrl:
+                                              record.thumbnailUrl ??
+                                              record.photoPath,
+                                          fit: BoxFit.cover,
+                                          placeholder:
+                                              (context, url) => Container(
+                                                color: Colors.grey[800],
+                                              ),
+                                          errorWidget:
+                                              (context, url, error) =>
+                                                  const Icon(
+                                                    Icons.error,
+                                                    color: Colors.white,
+                                                  ),
+                                        ),
                               ),
                             ),
                           );
@@ -245,14 +271,20 @@ class _FullScreenGalleryState extends State<FullScreenGallery> {
                     const SizedBox(height: 12),
                     // Caption
                     Container(
-                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 4,
+                        horizontal: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.black54,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
                         widget.records[_currentIndex].codeNumber,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ),

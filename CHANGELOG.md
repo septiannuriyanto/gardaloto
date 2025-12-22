@@ -27,3 +27,15 @@ All notable changes to this project will be documented in this file.
 ## [1.0.1] - 2025-12-19
 
 - **Fixed Storage Duplicate Issue**: Fixed an issue where the app would show error 409 (duplicate) when there was a partial upload, usually when uploading when in lack of connectivity.
+
+
+## [1.1.0] - 2025-12-21
+
+- **Fixed Compression Issue**: I realized when examining supabase storage, the image is stored in its original size, so I implemented the compression procedure to cut image size of maximum 150kb. This will enhance the image loading without compromising the quality.
+- **Added image size indicator**: I added a debug indicator to show the image size in the review page.
+
+- **Thumbnail image for a better loading speed**: The upload function now server several purposes :
+
+  - Save the original image (which has been compressed before) to the proper place based on the form data
+  - Generate thumbnail image for faster loading
+  - Save the url path to the "loto_records" table

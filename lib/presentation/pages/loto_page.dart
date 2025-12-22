@@ -3,12 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gardaloto/domain/entities/loto_entity.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:lottie/lottie.dart';
 
 import 'package:gardaloto/presentation/cubit/auth_cubit.dart';
 import 'package:gardaloto/presentation/cubit/auth_state.dart';
 import 'package:gardaloto/presentation/cubit/loto_cubit.dart';
 import 'package:gardaloto/presentation/cubit/loto_state.dart';
-import 'package:gardaloto/presentation/widget/capture_form_page.dart';
 import 'package:gardaloto/presentation/widget/loto_card.dart';
 import 'package:gardaloto/presentation/widget/loading_dialog.dart';
 import 'package:gardaloto/domain/entities/loto_session.dart';
@@ -34,6 +34,8 @@ class LotoPage extends StatefulWidget {
 }
 
 class _LotoPageState extends State<LotoPage> {
+  bool _isDialogOpen = false;
+
   @override
   void initState() {
     super.initState();
@@ -110,6 +112,10 @@ class _LotoPageState extends State<LotoPage> {
     final authState = context.read<AuthCubit>().state;
     final currentUser = authState is AuthAuthenticated ? authState.user : null;
 
+    setState(() {
+      _isDialogOpen = true;
+    });
+
     final session = await showDialog<LotoSession?>(
       context: context,
       barrierDismissible: false,
@@ -121,6 +127,12 @@ class _LotoPageState extends State<LotoPage> {
             currentUser: currentUser,
           ),
     );
+
+    if (mounted) {
+      setState(() {
+        _isDialogOpen = false;
+      });
+    }
 
     if (session != null) {
       if (context.mounted) {
@@ -311,7 +323,10 @@ class _LotoPageState extends State<LotoPage> {
         extendBodyBehindAppBar: true,
         drawer: const Sidebar(),
         appBar: AppBar(
-          title: const Text("LOTO", style: TextStyle(color: Colors.white)),
+          title: const Text(
+            "LOTO Draft",
+            style: TextStyle(color: Colors.white),
+          ),
           backgroundColor: Colors.transparent,
           elevation: 0,
           iconTheme: const IconThemeData(color: Colors.white),
@@ -350,13 +365,13 @@ class _LotoPageState extends State<LotoPage> {
                 );
               }
               if (state is LotoError) {
-              return GenericErrorView(
-                message: state.message,
-                onRefresh: () {
-                  context.read<LotoCubit>().loadActiveSession();
-                },
-              );
-            }
+                return GenericErrorView(
+                  message: state.message,
+                  onRefresh: () {
+                    context.read<LotoCubit>().loadActiveSession();
+                  },
+                );
+              }
 
               LotoSession? session;
               List<LotoEntity> records = [];
@@ -365,6 +380,9 @@ class _LotoPageState extends State<LotoPage> {
                 session = state.session;
                 records = state.records;
               } else if (state is LotoCapturing) {
+                session = state.session;
+                records = state.records;
+              } else if (state is LotoUploading) {
                 session = state.session;
                 records = state.records;
               }
@@ -499,8 +517,7 @@ class _LotoPageState extends State<LotoPage> {
                                         isProcessing: context
                                             .read<LotoCubit>()
                                             .isProcessing(
-                                              records[i]
-                                                  .timestamp
+                                              records[i].timestamp
                                                   .toIso8601String(),
                                             ),
                                         onImageTap: () {
@@ -524,7 +541,33 @@ class _LotoPageState extends State<LotoPage> {
                 );
               }
 
-              return const SizedBox();
+              return Stack(
+                children: [
+                  const Center(
+                    child: Text(
+                      "Tidak ada draft,\ntekan tombol di bawah\nuntuk menambah draft baru",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                  if (!_isDialogOpen)
+                    Positioned(
+                      bottom: 3,
+                      right: 80,
+                      child: Opacity(
+                        opacity: 0.8,
+                        child: Lottie.asset(
+                          'assets/lottie/blue_arrow.json',
+                          width: 150,
+                        ),
+                      ),
+                    ),
+                ],
+              );
             },
           ),
         ),

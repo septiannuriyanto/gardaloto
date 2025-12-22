@@ -162,17 +162,20 @@ class _DashboardViewState extends State<_DashboardView> {
     if (url.isEmpty) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent, 
-            iconTheme: const IconThemeData(color: Colors.white),
-          ),
-          body: PhotoView(
-            imageProvider: CachedNetworkImageProvider(url),
-            heroAttributes: const PhotoViewHeroAttributes(tag: 'dashboard_avatar_view'),
-          ),
-        ),
+        builder:
+            (context) => Scaffold(
+              backgroundColor: Colors.black,
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                iconTheme: const IconThemeData(color: Colors.white),
+              ),
+              body: PhotoView(
+                imageProvider: CachedNetworkImageProvider(url),
+                heroAttributes: const PhotoViewHeroAttributes(
+                  tag: 'dashboard_avatar_view',
+                ),
+              ),
+            ),
       ),
     );
   }
@@ -189,7 +192,9 @@ class _DashboardViewState extends State<_DashboardView> {
           name = state.user.nama ?? 'User';
           nrp = state.user.nrp!;
           // Use description if available
-          position = state.user.positionDescription ?? 'Position ${state.user.position}';
+          position =
+              state.user.positionDescription ??
+              'Position ${state.user.position}';
           photoUrl = state.user.photoUrl;
         }
         return _buildGlassPanel(
@@ -204,22 +209,36 @@ class _DashboardViewState extends State<_DashboardView> {
                 child: Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white.withOpacity(0.2), width: 2),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.2),
+                      width: 2,
+                    ),
                   ),
                   child: CircleAvatar(
                     radius: 24,
                     backgroundColor: Colors.white.withOpacity(0.1),
                     child: ClipOval(
-                      child: photoUrl != null && photoUrl.isNotEmpty
-                          ? CachedNetworkImage(
-                              imageUrl: photoUrl,
-                              fit: BoxFit.cover,
-                              width: 48,
-                              height: 48,
-                              placeholder: (context, url) => Container(color: Colors.white10),
-                              errorWidget: (context, url, error) => const Icon(Icons.person, color: Colors.white),
-                            )
-                          : const Icon(Icons.person, color: Colors.white, size: 28),
+                      child:
+                          photoUrl != null && photoUrl.isNotEmpty
+                              ? CachedNetworkImage(
+                                imageUrl: photoUrl,
+                                fit: BoxFit.cover,
+                                width: 48,
+                                height: 48,
+                                placeholder:
+                                    (context, url) =>
+                                        Container(color: Colors.white10),
+                                errorWidget:
+                                    (context, url, error) => const Icon(
+                                      Icons.person,
+                                      color: Colors.white,
+                                    ),
+                              )
+                              : const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 28,
+                              ),
                     ),
                   ),
                 ),
@@ -231,10 +250,7 @@ class _DashboardViewState extends State<_DashboardView> {
                   children: [
                     const Text(
                       'Welcome,',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
                     Text(
                       name,
@@ -274,31 +290,29 @@ class _DashboardViewState extends State<_DashboardView> {
             // Period Switcher (Replaces Date Picker)
             Expanded(
               child: _buildGlassPanel(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 4,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _periodButton(
-                          context,
-                          'Week',
-                          DashboardPeriod.week,
-                          state.selectedPeriod,
-                        ),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _periodButton(
+                        context,
+                        'Week',
+                        DashboardPeriod.week,
+                        state.selectedPeriod,
                       ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: _periodButton(
-                          context,
-                          'Month',
-                          DashboardPeriod.month,
-                          state.selectedPeriod,
-                        ),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: _periodButton(
+                        context,
+                        'Month',
+                        DashboardPeriod.month,
+                        state.selectedPeriod,
                       ),
-                    ],
-                  )),
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -316,7 +330,10 @@ class _DashboardViewState extends State<_DashboardView> {
                       isDense: true, // Compact
                       dropdownColor: const Color(0xFF004e92),
                       icon: const Icon(Icons.expand_more, color: Colors.white),
-                      style: const TextStyle(color: Colors.white, fontSize: 12), // Match font size
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                      ), // Match font size
                       items: const [
                         DropdownMenuItem(
                           value: 0,
@@ -328,7 +345,9 @@ class _DashboardViewState extends State<_DashboardView> {
                       ],
                       onChanged: (val) {
                         if (val != null)
-                          context.read<DashboardCubit>().updateFilter(shift: val);
+                          context.read<DashboardCubit>().updateFilter(
+                            shift: val,
+                          );
                       },
                     ),
                   ),
@@ -343,7 +362,6 @@ class _DashboardViewState extends State<_DashboardView> {
 
   // ... (Period Switcher Unchanged) ...
 
-
   Widget _periodButton(
     BuildContext context,
     String label,
@@ -356,7 +374,9 @@ class _DashboardViewState extends State<_DashboardView> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         height: 36, // Explicit Height
-        padding: const EdgeInsets.symmetric(horizontal: 12), // Remove vertical padding as we use alignment/height
+        padding: const EdgeInsets.symmetric(
+          horizontal: 12,
+        ), // Remove vertical padding as we use alignment/height
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color:
@@ -404,7 +424,7 @@ class _DashboardViewState extends State<_DashboardView> {
         }
 
         List<LineChartBarData> bars = [];
-        
+
         // Mode: 0=Trend, 1=S1, 2=S2, 3=All
         final showS1 = state.selectedShift == 1 || state.selectedShift == 3;
         final showS2 = state.selectedShift == 2 || state.selectedShift == 3;
@@ -418,94 +438,126 @@ class _DashboardViewState extends State<_DashboardView> {
 
         // Trend (Avg)
         if (showAvg) {
-            bars.add(LineChartBarData(
-              spots: spotsAvg, 
-              isCurved: true, 
-              gradient: const LinearGradient(colors: [Color(0xFF4facfe), Color(0xFF00f2fe)]), 
-              barWidth: mainWidth, 
-              isStrokeCapRound: true, 
+          bars.add(
+            LineChartBarData(
+              spots: spotsAvg,
+              isCurved: true,
+              gradient: const LinearGradient(
+                colors: [Color(0xFF4facfe), Color(0xFF00f2fe)],
+              ),
+              barWidth: mainWidth,
+              isStrokeCapRound: true,
               dotData: FlDotData(
-                show: true, 
+                show: true,
                 checkToShowDot: _showDotOnlyOnAvg,
-                getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                  radius: 3, // Smaller
-                  color: const Color(0xFF4facfe), 
-                  strokeWidth: 1.0,
-                  strokeColor: Colors.white, 
-                ),
-              ), 
+                getDotPainter:
+                    (spot, percent, barData, index) => FlDotCirclePainter(
+                      radius: 3, // Smaller
+                      color: const Color(0xFF4facfe),
+                      strokeWidth: 1.0,
+                      strokeColor: Colors.white,
+                    ),
+              ),
               belowBarData: BarAreaData(
-                show: !isAll, 
+                show: !isAll,
                 gradient: LinearGradient(
-                  colors: [const Color(0xFF4facfe).withOpacity(0.5), Colors.transparent], 
-                  begin: Alignment.topCenter, 
-                  end: Alignment.bottomCenter
+                  colors: [
+                    const Color(0xFF4facfe).withOpacity(0.5),
+                    Colors.transparent,
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
               ),
-            ));
+            ),
+          );
         }
 
         // Shift 1 - Amber to Pink Gradient (User Request)
         if (showS1) {
-           bars.add(LineChartBarData(
-              spots: spots1, isCurved: true,
+          bars.add(
+            LineChartBarData(
+              spots: spots1,
+              isCurved: true,
               gradient: const LinearGradient(
-                colors: [Color(0xFFfee140), Color(0xFFfa709a)] // Amber -> Pink
-              ), 
-              barWidth: subWidth, 
-              isStrokeCapRound: true, 
+                colors: [Color(0xFFfee140), Color(0xFFfa709a)], // Amber -> Pink
+              ),
+              barWidth: subWidth,
+              isStrokeCapRound: true,
               dotData: FlDotData(
                 show: true,
-                getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                  radius: 3,
-                  color: const Color(0xFFFF3D00), // Red-Orange (User request "merah semi orange")
-                  strokeWidth: 1.0,
-                  strokeColor: Colors.white,
-                ),
+                getDotPainter:
+                    (spot, percent, barData, index) => FlDotCirclePainter(
+                      radius: 3,
+                      color: const Color(
+                        0xFFFF3D00,
+                      ), // Red-Orange (User request "merah semi orange")
+                      strokeWidth: 1.0,
+                      strokeColor: Colors.white,
+                    ),
               ),
               belowBarData: BarAreaData(
-                show: !showAvg && !showS2, 
+                show: !showAvg && !showS2,
                 gradient: LinearGradient(
-                  colors: [const Color(0xFFfee140).withOpacity(0.5), Colors.transparent], 
-                  begin: Alignment.topCenter, 
-                  end: Alignment.bottomCenter
+                  colors: [
+                    const Color(0xFFfee140).withOpacity(0.5),
+                    Colors.transparent,
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
               ),
-           ));
+            ),
+          );
         }
-        
+
         // Shift 2 - Green to Yellow Gradient (User Request)
         if (showS2) {
-           bars.add(LineChartBarData(
-              spots: spots2, isCurved: true,
+          bars.add(
+            LineChartBarData(
+              spots: spots2,
+              isCurved: true,
               gradient: const LinearGradient(
-                colors: [Color(0xFF00E676), Color(0xFFFFEA00)] // Green -> Yellow
-              ), 
-              barWidth: subWidth, 
-              isStrokeCapRound: true, 
+                colors: [
+                  Color(0xFF00E676),
+                  Color(0xFFFFEA00),
+                ], // Green -> Yellow
+              ),
+              barWidth: subWidth,
+              isStrokeCapRound: true,
               dotData: FlDotData(
                 show: true,
-                getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                  radius: 3,
-                  color: const Color(0xFF00E676), // Bright Green (User request "hijau terang")
-                  strokeWidth: 1.0,
-                  strokeColor: Colors.white,
-                ),
+                getDotPainter:
+                    (spot, percent, barData, index) => FlDotCirclePainter(
+                      radius: 3,
+                      color: const Color(
+                        0xFF00E676,
+                      ), // Bright Green (User request "hijau terang")
+                      strokeWidth: 1.0,
+                      strokeColor: Colors.white,
+                    ),
               ),
               belowBarData: BarAreaData(
-                show: !showAvg && !showS1, 
+                show: !showAvg && !showS1,
                 gradient: LinearGradient(
-                  colors: [const Color(0xFF00E676).withOpacity(0.5), Colors.transparent], 
-                  begin: Alignment.topCenter, 
-                  end: Alignment.bottomCenter
+                  colors: [
+                    const Color(0xFF00E676).withOpacity(0.5),
+                    Colors.transparent,
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
               ),
-           ));
+            ),
+          );
         }
 
         // Horizontal Scrolling Logic
         final isScrollable = state.selectedPeriod == DashboardPeriod.month;
-        double chartWidth = MediaQuery.of(context).size.width - 64 - 40; // Subtract padding & Y-Axis width
+        double chartWidth =
+            MediaQuery.of(context).size.width -
+            64 -
+            40; // Subtract padding & Y-Axis width
         if (isScrollable) {
           final days = state.shift1Data.length;
           chartWidth = days * 40.0;
@@ -518,125 +570,205 @@ class _DashboardViewState extends State<_DashboardView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('LOTO Achievement', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'LOTO Achievement Trend',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      _buildLastVerificationText(
+                        context,
+                        state.lastVerificationCode,
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                  ),
                   if (showAvg)
-                     Row(children: [
-                        Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [Color(0xFF4facfe), Color(0xFF00f2fe)]))),
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF4facfe), Color(0xFF00f2fe)],
+                            ),
+                          ),
+                        ),
                         const SizedBox(width: 4),
-                        const Text('Trend', style: TextStyle(fontSize: 10, color: Colors.white70)),
-                     ]),
+                        const Text(
+                          'Trend',
+                          style: TextStyle(fontSize: 10, color: Colors.white70),
+                        ),
+                      ],
+                    ),
                 ],
               ),
               const SizedBox(height: 24),
               // Chart Container
               SizedBox(
-                 height: 300,
-                 child: Row(
-                   children: [
-                     // Frozen Y-Axis
-                     SizedBox(
-                       width: 40,
-                       child: Column(
-                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                         children: [100, 80, 60, 40, 20, 0].map((e) => 
-                           Padding(
-                             padding: const EdgeInsets.only(bottom: 0),
-                             child: Text('$e%', style: const TextStyle(color: Colors.white70, fontSize: 10)),
-                           )
-                         ).toList(),
-                       ),
-                     ),
-                     // Scrollable Chart Area
-                     Expanded(
-                       child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          controller: isScrollable ? _chartScrollController : null,
-                          physics: isScrollable ? const BouncingScrollPhysics() : const NeverScrollableScrollPhysics(),
-                          child: SizedBox(
-                            width: chartWidth,
-                            child: LineChart(
-                              LineChartData(
-                                // ... grid & titles ...
-                                gridData: FlGridData(
-                                   show: true, 
-                                   drawVerticalLine: true, 
-                                   getDrawingVerticalLine: (_) => FlLine(color: Colors.white.withOpacity(0.05), strokeWidth: 1),
-                                   getDrawingHorizontalLine: (_) => FlLine(color: Colors.white.withOpacity(0.1), strokeWidth: 1)
+                height: 300,
+                child: Row(
+                  children: [
+                    // Frozen Y-Axis
+                    SizedBox(
+                      width: 40,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children:
+                            [100, 80, 60, 40, 20, 0]
+                                .map(
+                                  (e) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 0),
+                                    child: Text(
+                                      '$e%',
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                      ),
+                    ),
+                    // Scrollable Chart Area
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        controller:
+                            isScrollable ? _chartScrollController : null,
+                        physics:
+                            isScrollable
+                                ? const BouncingScrollPhysics()
+                                : const NeverScrollableScrollPhysics(),
+                        child: SizedBox(
+                          width: chartWidth,
+                          child: LineChart(
+                            LineChartData(
+                              // ... grid & titles ...
+                              gridData: FlGridData(
+                                show: true,
+                                drawVerticalLine: true,
+                                getDrawingVerticalLine:
+                                    (_) => FlLine(
+                                      color: Colors.white.withOpacity(0.05),
+                                      strokeWidth: 1,
+                                    ),
+                                getDrawingHorizontalLine:
+                                    (_) => FlLine(
+                                      color: Colors.white.withOpacity(0.1),
+                                      strokeWidth: 1,
+                                    ),
+                              ),
+                              titlesData: FlTitlesData(
+                                leftTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
                                 ),
-                                titlesData: FlTitlesData(
-                                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                  bottomTitles: AxisTitles(sideTitles: SideTitles(
-                                    showTitles: true, 
-                                    reservedSize: 32, // Ensure space for "dd MMM"
-                                    interval: 1, 
-                                    getTitlesWidget: (val, meta) => _bottomTitles(val, meta, state)
-                                  )),
-                                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                ),
-                                borderData: FlBorderData(show: false),
-                                // ... touch data ...
-                                lineTouchData: LineTouchData(
-                                  touchTooltipData: LineTouchTooltipData(
-                                    fitInsideVertically: true,
-                                    fitInsideHorizontally: true,
-                                    getTooltipItems: (touchedSpots) {
-                                       touchedSpots.sort((a, b) => a.barIndex.compareTo(b.barIndex));
-                                       return touchedSpots.map((spot) {
-                                          final val = spot.y.toInt();
-                                          String label = '';
-                                          int relativeIndex = spot.barIndex;
-                                          if (showAvg) {
-                                            if (relativeIndex == 0) label = 'Trend';
-                                            else if (showS1 && relativeIndex == 1) label = 'Shift 1';
-                                            else label = 'Shift 2'; 
-                                            if (showAvg && !showS1 && relativeIndex == 1) label = 'Shift 2';
-                                          } else {
-                                            if (showS1 && relativeIndex == 0) label = 'Shift 1';
-                                            else label = 'Shift 2';
-                                          }
-                                          
-                                          return LineTooltipItem(
-                                            '$label: $val%', 
-                                            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)
-                                          );
-                                       }).toList();
-                                    },
-                                    tooltipBgColor: Colors.black.withOpacity(0.8),
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize:
+                                        32, // Ensure space for "dd MMM"
+                                    interval: 1,
+                                    getTitlesWidget:
+                                        (val, meta) =>
+                                            _bottomTitles(val, meta, state),
                                   ),
                                 ),
-                                lineBarsData: bars,
-                                minY: 0,
-                                maxY: 100,
+                                topTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
+                                rightTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
                               ),
+                              borderData: FlBorderData(show: false),
+                              // ... touch data ...
+                              lineTouchData: LineTouchData(
+                                touchTooltipData: LineTouchTooltipData(
+                                  fitInsideVertically: true,
+                                  fitInsideHorizontally: true,
+                                  getTooltipItems: (touchedSpots) {
+                                    touchedSpots.sort(
+                                      (a, b) =>
+                                          a.barIndex.compareTo(b.barIndex),
+                                    );
+                                    return touchedSpots.map((spot) {
+                                      final val = spot.y.toInt();
+                                      String label = '';
+                                      int relativeIndex = spot.barIndex;
+                                      if (showAvg) {
+                                        if (relativeIndex == 0)
+                                          label = 'Trend';
+                                        else if (showS1 && relativeIndex == 1)
+                                          label = 'Shift 1';
+                                        else
+                                          label = 'Shift 2';
+                                        if (showAvg &&
+                                            !showS1 &&
+                                            relativeIndex == 1)
+                                          label = 'Shift 2';
+                                      } else {
+                                        if (showS1 && relativeIndex == 0)
+                                          label = 'Shift 1';
+                                        else
+                                          label = 'Shift 2';
+                                      }
+
+                                      return LineTooltipItem(
+                                        '$label: $val%',
+                                        const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      );
+                                    }).toList();
+                                  },
+                                  tooltipBgColor: Colors.black.withOpacity(0.8),
+                                ),
+                              ),
+                              lineBarsData: bars,
+                              minY: 0,
+                              maxY: 100,
+                              minX: 0.5,
+                              maxX: state.shift1Data.length.toDouble() + 0.5,
                             ),
                           ),
-                       ),
-                     ),
-                   ],
-                 ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
               // Legend
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                   if (showAvg) ...[
-                      _buildLegendItem(const Color(0xFF4facfe), 'Trend'), 
-                      const SizedBox(width: 16)
-                   ],
-                   if (showS1) ...[
-                      _buildLegendItem(const Color(0xFFFF3D00), 'Shift 1'), 
-                      const SizedBox(width: 16)
-                   ],
-                   if (showS2) ...[
-                      _buildLegendItem(const Color(0xFF00E676), 'Shift 2'), 
-                   ],
+                  if (showAvg) ...[
+                    _buildLegendItem(const Color(0xFF4facfe), 'Trend'),
+                    const SizedBox(width: 16),
+                  ],
+                  if (showS1) ...[
+                    _buildLegendItem(const Color(0xFFFF3D00), 'Shift 1'),
+                    const SizedBox(width: 16),
+                  ],
+                  if (showS2) ...[
+                    _buildLegendItem(const Color(0xFF00E676), 'Shift 2'),
+                  ],
+                ],
+              ),
             ],
           ),
-        ],
-      ),
-    );
+        );
       },
     );
   }
@@ -646,15 +778,17 @@ class _DashboardViewState extends State<_DashboardView> {
   }
 
   Widget _bottomTitles(double value, TitleMeta meta, DashboardState state) {
+    if (value % 1 != 0) return const SizedBox.shrink();
+
     const style = TextStyle(fontSize: 10, color: Colors.white70);
     String text = '';
     int idx = value.toInt() - 1;
 
     if (idx >= 0 && idx < state.shift1Data.length) {
-       final item = state.shift1Data[idx];
-       if (item['date'] is DateTime) {
-         text = DateFormat('dd').format(item['date']);
-       }
+      final item = state.shift1Data[idx];
+      if (item['date'] is DateTime) {
+        text = DateFormat('dd').format(item['date']);
+      }
     }
 
     return SideTitleWidget(
@@ -680,14 +814,96 @@ class _DashboardViewState extends State<_DashboardView> {
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.white70,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 10, color: Colors.white70),
         ),
       ],
     );
+  }
+
+  bool _isOutdated(int? code) {
+    if (code == null) return true; // No data = Outdated
+    final s = code.toString();
+    if (s.length < 10) return true;
+
+    try {
+      final yy = int.parse(s.substring(0, 2));
+      final mm = int.parse(s.substring(2, 4));
+      final dd = int.parse(s.substring(4, 6));
+      final shift = int.parse(s.substring(6));
+
+      final year = 2000 + yy;
+      final date = DateTime(year, mm, dd);
+
+      final nowUtc = DateTime.now().toUtc();
+      final nowWita = nowUtc.add(const Duration(hours: 8));
+
+      int getShiftIndex(DateTime d, int s) {
+        final dayStart = DateTime(d.year, d.month, d.day);
+        final days = dayStart.difference(DateTime(2000)).inDays;
+        return (days * 2) + (s - 1);
+      }
+
+      int currentShiftNum = (nowWita.hour >= 6 && nowWita.hour < 18) ? 1 : 2;
+      DateTime effectiveDate = nowWita;
+      if (nowWita.hour < 6) {
+        effectiveDate = nowWita.subtract(const Duration(days: 1));
+        currentShiftNum = 2;
+      }
+
+      final currentShiftIndex = getShiftIndex(effectiveDate, currentShiftNum);
+      final dataShiftIndex = getShiftIndex(date, shift);
+
+      final diff = currentShiftIndex - dataShiftIndex;
+
+      return diff > 2;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  Widget _buildLastVerificationText(BuildContext context, int? code) {
+    if (code == null) return const SizedBox.shrink();
+
+    // Code Format: YYMMDDSSSS (e.g., 2512190002)
+    final s = code.toString();
+    if (s.length < 10) return const SizedBox.shrink();
+
+    try {
+      final yy = int.parse(s.substring(0, 2));
+      final mm = int.parse(s.substring(2, 4));
+      final dd = int.parse(s.substring(4, 6));
+      final shift = int.parse(s.substring(6));
+
+      // Year is likely 20YY
+      // final year = 2000 + yy; // Unused
+      // final date = DateTime(year, mm, dd); // Unused
+      final formattedDate =
+          '${dd.toString().padLeft(2, '0')}/${mm.toString().padLeft(2, '0')}/$yy';
+
+      final label = 'Last Verification Data : $formattedDate shift $shift';
+      final isOutdated = _isOutdated(code);
+
+      // Logic: > 2 shift diff -> Red
+      // <= 2 shift diff -> Light Blue (Achievement Trend Color)
+
+      Color color;
+      if (isOutdated) {
+        color = Colors.redAccent;
+      } else {
+        color = const Color(0xFF4facfe); // Light Blue
+      }
+
+      return Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          color: color,
+          fontWeight: FontWeight.w500,
+        ),
+      );
+    } catch (e) {
+      return const SizedBox.shrink();
+    }
   }
 
   Widget _buildWarehouseChart(BuildContext context) {
@@ -707,6 +923,24 @@ class _DashboardViewState extends State<_DashboardView> {
                   color: Colors.white,
                 ),
               ),
+              if (_isOutdated(state.lastVerificationCode)) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.redAccent),
+                  ),
+                  child: const Text(
+                    "Data Verifikasi Belum Update",
+                    style: TextStyle(color: Colors.redAccent, fontSize: 10),
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               ...state.warehouseData.asMap().entries.map((entry) {
                 final index = entry.key;
@@ -808,6 +1042,24 @@ class _DashboardViewState extends State<_DashboardView> {
                   color: Colors.white,
                 ),
               ),
+              if (_isOutdated(state.lastVerificationCode)) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.redAccent),
+                  ),
+                  child: const Text(
+                    "Data Verifikasi Belum Update",
+                    style: TextStyle(color: Colors.redAccent, fontSize: 10),
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
               ...state.nrpData.asMap().entries.map((entry) {
                 final item = entry.value;

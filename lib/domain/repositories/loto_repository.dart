@@ -62,8 +62,14 @@ abstract class LotoRepository {
   Future<List<Map<String, dynamic>>> getAchievementTrend({int daysBack = 30});
 
   /// Fetches Warehouse achievement (RPC get_loto_achievement_warehouse).
-  Future<List<Map<String, dynamic>>> getWarehouseAchievement({int daysBack = 30});
+  Future<List<Map<String, dynamic>>> getWarehouseAchievement({
+    int daysBack = 30,
+  });
 
   /// Fetches NRP Ranking (RPC get_loto_ranking_nrp).
   Future<List<Map<String, dynamic>>> getNrpRanking({int daysBack = 30});
+
+  /// Get the max session code from loto_verification table
+  /// Returns a big int like YYMMDDSSSS or null
+  Future<int?> getLastVerificationSessionCode();
 }
