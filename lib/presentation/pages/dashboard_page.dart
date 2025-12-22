@@ -14,6 +14,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:gardaloto/core/service_locator.dart';
 import 'package:gardaloto/domain/repositories/loto_repository.dart';
 import 'package:gardaloto/presentation/pages/achievement_fuelman_detail_page.dart';
+import 'package:gardaloto/presentation/cubit/fuelman_detail_cubit.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -1078,9 +1079,16 @@ class _DashboardViewState extends State<_DashboardView> {
                           context,
                           MaterialPageRoute(
                             builder:
-                                (context) => AchievementFuelmanDetailPage(
-                                  nrp: nrp,
-                                  name: label,
+                                (context) => BlocProvider(
+                                  create:
+                                      (context) => FuelmanDetailCubit(
+                                        lotoRepo: sl<LotoRepository>(),
+                                        nrp: nrp,
+                                      )..loadDailyAchievement(),
+                                  child: AchievementFuelmanDetailPage(
+                                    nrp: nrp,
+                                    name: label,
+                                  ),
                                 ),
                           ),
                         );

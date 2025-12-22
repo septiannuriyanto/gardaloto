@@ -493,4 +493,17 @@ class LotoRepositoryImpl implements LotoRepository {
       return [];
     }
   }
+
+  @override
+  Future<void> updateLotoRecordUnit(String recordId, String newUnitCode) async {
+    try {
+      await _supabaseClient.rpc(
+        'update_loto_record_unit',
+        params: {'p_record_id': recordId, 'p_new_unit_code': newUnitCode},
+      );
+    } catch (e) {
+      print('Error updating loto record unit: $e');
+      rethrow;
+    }
+  }
 }

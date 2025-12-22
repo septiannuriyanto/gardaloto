@@ -85,4 +85,7 @@ abstract class LotoRepository {
     DateTime date,
     int shift,
   );
+
+  /// Updates the unit code of an existing LOTO record (RPC update_loto_record_unit).
+  Future<void> updateLotoRecordUnit(String recordId, String newUnitCode);
 }

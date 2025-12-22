@@ -1,10 +1,15 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:gardaloto/core/service_locator.dart';
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gardaloto/domain/entities/loto_session.dart';
 import 'package:gardaloto/domain/repositories/loto_repository.dart';
 import 'package:gardaloto/presentation/cubit/fuelman_detail_cubit.dart';
 import 'package:gardaloto/presentation/cubit/fuelman_detail_state.dart';
+import 'package:gardaloto/presentation/cubit/loto_cubit.dart';
+import 'package:gardaloto/presentation/widget/capture_form_page.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 class AchievementFuelmanDetailPage extends StatefulWidget {
@@ -69,48 +74,60 @@ class _AchievementFuelmanDetailPageState
             lotoRepo: sl<LotoRepository>(),
             nrp: widget.nrp,
           )..loadDailyAchievement(),
-      child: Scaffold(
-        extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          title: const Text(
-            'LOTO Achievement detail by Fuelman',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Colors.white,
+      child: BlocListener<FuelmanDetailCubit, FuelmanDetailState>(
+        listener: (context, state) {
+          if (state.errorMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage!),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+        child: Scaffold(
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            title: const Text(
+              'LOTO Achievement detail by Fuelman',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.white,
+              ),
+            ),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
             ),
           ),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF0F2027), // Deep Dark Blue/Black
-                Color(0xFF203A43), // Muted Teal/Grey-Blue
-                Color(0xFF2C5364), // Softer Blue-Grey
-              ],
-            ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(),
-                  const SizedBox(height: 24),
-                  _buildChartSection(),
-                  const SizedBox(height: 24),
-                  Expanded(child: _buildReconciliationSection()),
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF0F2027), // Deep Dark Blue/Black
+                  Color(0xFF203A43), // Muted Teal/Grey-Blue
+                  Color(0xFF2C5364), // Softer Blue-Grey
                 ],
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(),
+                    const SizedBox(height: 24),
+                    _buildChartSection(),
+                    const SizedBox(height: 24),
+                    Expanded(child: _buildReconciliationSection()),
+                  ],
+                ),
               ),
             ),
           ),
@@ -513,7 +530,9 @@ class _AchievementFuelmanDetailPageState
         }
 
         if (state.isReconciliationLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          );
         }
 
         final dateStr = DateFormat('dd MMM yyyy').format(state.selectedDate!);
@@ -714,7 +733,7 @@ class _AchievementFuelmanDetailPageState
                         itemCount: filteredList.length,
                         itemBuilder: (context, index) {
                           final item = filteredList[index];
-                          return _buildReconciliationCard(item);
+                          return _buildReconciliationCard(context, item);
                         },
                       ),
             ),
@@ -778,7 +797,10 @@ class _AchievementFuelmanDetailPageState
     );
   }
 
-  Widget _buildReconciliationCard(Map<String, dynamic> item) {
+  Widget _buildReconciliationCard(
+    BuildContext context,
+    Map<String, dynamic> item,
+  ) {
     final unitCode = item['unit_code'] ?? 'Unknown';
     final status = item['status'] ?? 'UNKNOWN';
     final lotoTimeStr = item['loto_time'];
@@ -828,49 +850,559 @@ class _AchievementFuelmanDetailPageState
         borderRadius: BorderRadius.circular(12),
         border: Border(left: BorderSide(color: statusColor, width: 4)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                unitCode,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+      child: InkWell(
+        onTap:
+            status == 'MISSING_LOTO'
+                ? () => _handleMissingItemTap(context, item)
+                : null,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  unitCode,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(statusIcon, color: statusColor, size: 14),
-                  const SizedBox(width: 4),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(statusIcon, color: statusColor, size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      statusText,
+                      style: TextStyle(color: statusColor, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (status != 'MISSING_LOTO')
                   Text(
-                    statusText,
-                    style: TextStyle(color: statusColor, fontSize: 12),
+                    'LOTO: ${formatTime(lotoTimeStr)}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                if (status != 'EXTRA_LOTO')
+                  Text(
+                    'Plan: ${formatTime(verifyTimeStr)}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleMissingItemTap(BuildContext context, Map<String, dynamic> item) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final state = context.read<FuelmanDetailCubit>().state;
+        final unplannedItems =
+            state.reconciliationData
+                .where((i) => i['status'] == 'EXTRA_LOTO')
+                .toList();
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F2027).withValues(alpha: 0.8),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Resolve Missing LOTO',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                _buildActionTile(
+                  icon: Icons.sync,
+                  label: 'Sync with Unplanned Data',
+                  color: Colors.blueAccent,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showSyncDialog(context, item, unplannedItems);
+                  },
+                ),
+                const SizedBox(height: 16),
+                _buildActionTile(
+                  icon: Icons.add_a_photo,
+                  label: 'Add Image',
+                  color: Colors.greenAccent,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _navigateToAddImage(context, item);
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildActionTile({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Spacer(),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white54,
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSyncDialog(
+    BuildContext context,
+    Map<String, dynamic> missingItem,
+    List<Map<String, dynamic>> unplannedItems,
+  ) {
+    // Capture state for debug
+    final state = context.read<FuelmanDetailCubit>().state;
+    final matchCount =
+        state.reconciliationData.where((e) => e['status'] == 'MATCH').length;
+    final missingCount =
+        state.reconciliationData
+            .where((e) => e['status'] == 'MISSING_LOTO')
+            .length;
+    final extraCount =
+        state.reconciliationData
+            .where((e) => e['status'] == 'EXTRA_LOTO')
+            .length;
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (ctx) {
+        return _SyncDialog(
+          missingItem: missingItem,
+          unplannedItems: unplannedItems,
+          state: state,
+          matchCount: matchCount,
+          missingCount: missingCount,
+          extraCount: extraCount,
+          cubit: context.read<FuelmanDetailCubit>(),
+        );
+      },
+    );
+  }
+
+  Future<void> _navigateToAddImage(
+    BuildContext context,
+    Map<String, dynamic> item,
+  ) async {
+    final picker = ImagePicker();
+    final XFile? image = await showDialog<XFile?>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder:
+          (ctx) => BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: AlertDialog(
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: Colors.white.withOpacity(0.2)),
+              ),
+              title: const Text(
+                "Add Image Source",
+                style: TextStyle(color: Colors.white),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: const Icon(
+                      Icons.camera_alt,
+                      color: Colors.cyanAccent,
+                    ),
+                    title: const Text(
+                      "Camera",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    onTap: () async {
+                      Navigator.pop(
+                        ctx,
+                        await picker.pickImage(source: ImageSource.camera),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.photo_library,
+                      color: Colors.purpleAccent,
+                    ),
+                    title: const Text(
+                      "Gallery",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    onTap: () async {
+                      Navigator.pop(
+                        ctx,
+                        await picker.pickImage(source: ImageSource.gallery),
+                      );
+                    },
                   ),
                 ],
               ),
-            ],
+            ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (status != 'MISSING_LOTO')
-                Text(
-                  'LOTO: ${formatTime(lotoTimeStr)}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+    );
+
+    if (image == null) return;
+    if (!context.mounted) return;
+
+    final sessionCode = item['session_code'];
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (context) => BlocProvider(
+              create: (ctx) {
+                final cubit = LotoCubit(sl<LotoRepository>());
+
+                cubit.setSession(
+                  LotoSession(
+                    nomor: sessionCode ?? 'UNKNOWN',
+                    dateTime: DateTime.now(),
+                    shift: 1,
+                    warehouseCode: 'UNKNOWN',
+                    fuelman: 'UNKNOWN',
+                    operatorName: 'UNKNOWN',
+                  ),
+                );
+
+                cubit.startCapture(photoPath: image.path);
+                cubit.setCaptureSelectedCode(item['unit_code']);
+                return cubit;
+              },
+              child: const CaptureFormPage(),
+            ),
+      ),
+    );
+
+    if (context.mounted) {
+      final cubit = context.read<FuelmanDetailCubit>();
+      if (cubit.state.selectedDate != null &&
+          cubit.state.selectedShift != null) {
+        cubit.selectPoint(
+          cubit.state.selectedDate!,
+          cubit.state.selectedShift!,
+        );
+      }
+    }
+  }
+}
+
+class _SyncDialog extends StatefulWidget {
+  final Map<String, dynamic> missingItem;
+  final List<Map<String, dynamic>> unplannedItems;
+  final FuelmanDetailState state;
+  final int matchCount;
+  final int missingCount;
+  final int extraCount;
+  final FuelmanDetailCubit cubit;
+
+  const _SyncDialog({
+    required this.missingItem,
+    required this.unplannedItems,
+    required this.state,
+    required this.matchCount,
+    required this.missingCount,
+    required this.extraCount,
+    required this.cubit,
+  });
+
+  @override
+  State<_SyncDialog> createState() => _SyncDialogState();
+}
+
+class _SyncDialogState extends State<_SyncDialog> {
+  String? selectedRecordId;
+  String? selectedUnitCode;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Sync with Unplanned Data",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              if (status != 'EXTRA_LOTO')
-                Text(
-                  'Plan: ${formatTime(verifyTimeStr)}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                SizedBox(
+                  width: double.maxFinite,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (widget.unplannedItems.isEmpty) ...[
+                        const Icon(
+                          Icons.info_outline,
+                          color: Colors.orangeAccent,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "No Unplanned items available to sync.\n\nDebug Info:\nTotal: ${widget.state.reconciliationData.length}\nMATCH: ${widget.matchCount}\nMISSING: ${widget.missingCount}\nEXTRA: ${widget.extraCount}",
+                          style: const TextStyle(color: Colors.white70),
+                          textAlign: TextAlign.center,
+                        ),
+                      ] else ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.redAccent.withValues(alpha: 0.5),
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              const Text(
+                                "MISSING UNIT",
+                                style: TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                widget.missingItem['unit_code'] ?? 'UNKNOWN',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          "Select an Unplanned (Extra) LOTO record to assign to this missing unit:",
+                          style: TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
+                        const SizedBox(height: 16),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 300),
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: widget.unplannedItems.length,
+                            separatorBuilder:
+                                (_, __) => const SizedBox(height: 8),
+                            itemBuilder: (context, index) {
+                              final item = widget.unplannedItems[index];
+                              // Ensure robust comparison by converting to string if needed
+                              // Handle potential key mismatch from RPC (record_id vs rid)
+                              final itemId =
+                                  (item['record_id'] ?? item['rid'])
+                                      ?.toString();
+                              final isSelected =
+                                  itemId != null && selectedRecordId == itemId;
+
+                              return Material(
+                                color: Colors.transparent,
+                                child: Ink(
+                                  decoration: BoxDecoration(
+                                    color:
+                                        isSelected
+                                            ? Colors.green.withValues(
+                                              alpha: 0.3,
+                                            )
+                                            : Colors.white.withValues(
+                                              alpha: 0.05,
+                                            ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color:
+                                          isSelected
+                                              ? Colors.green
+                                              : Colors.white10,
+                                      width: isSelected ? 2.0 : 1.0,
+                                    ),
+                                  ),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(12),
+                                    onTap: () {
+                                      setState(() {
+                                        selectedRecordId = itemId;
+                                        selectedUnitCode = item['unit_code'];
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 12,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            isSelected
+                                                ? Icons.check_circle
+                                                : Icons.circle_outlined,
+                                            color:
+                                                isSelected
+                                                    ? Colors.green
+                                                    : Colors.white54,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  item['unit_code'] ?? '-',
+                                                  style: TextStyle(
+                                                    color:
+                                                        isSelected
+                                                            ? Colors.white
+                                                            : Colors.white70,
+                                                    fontWeight:
+                                                        isSelected
+                                                            ? FontWeight.bold
+                                                            : FontWeight.normal,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-            ],
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text(
+                        "Cancel",
+                        style: TextStyle(color: Colors.white54),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (widget.unplannedItems.isNotEmpty)
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent,
+                          disabledBackgroundColor: Colors.white10,
+                        ),
+                        onPressed:
+                            selectedRecordId == null
+                                ? null
+                                : () {
+                                  Navigator.of(context).pop();
+                                  widget.cubit.resolveMissingWithUnplanned(
+                                    selectedRecordId!,
+                                    widget.missingItem['unit_code'],
+                                  );
+                                },
+                        child: const Text(
+                          "Sync",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }

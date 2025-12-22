@@ -20,9 +20,16 @@ class FuelmanDetailCubit extends Cubit<FuelmanDetailState> {
     }
   }
 
-  Future<void> selectPoint(DateTime date, int shift) async {
-    // If same point selected, do nothing or toggle? Let's just reload.
-    if (state.selectedDate == date && state.selectedShift == shift) return;
+  Future<void> selectPoint(
+    DateTime date,
+    int shift, {
+    bool forceRefresh = false,
+  }) async {
+    // If same point selected, do nothing unless forced
+    if (!forceRefresh &&
+        state.selectedDate == date &&
+        state.selectedShift == shift)
+      return;
 
     emit(
       state.copyWith(
@@ -63,6 +70,30 @@ class FuelmanDetailCubit extends Cubit<FuelmanDetailState> {
       emit(state.copyWith(forceClearFilter: true));
     } else {
       emit(state.copyWith(selectedFilterStatus: status));
+    }
+  }
+
+  Future<void> resolveMissingWithUnplanned(
+    String recordId,
+    String correctUnitCode,
+  ) async {
+    try {
+      emit(state.copyWith(isReconciliationLoading: true));
+      await lotoRepo.updateLotoRecordUnit(recordId, correctUnitCode);
+      if (state.selectedDate != null && state.selectedShift != null) {
+        await selectPoint(
+          state.selectedDate!,
+          state.selectedShift!,
+          forceRefresh: true,
+        );
+      }
+    } catch (e) {
+      emit(
+        state.copyWith(
+          errorMessage: 'Failed to resolve: $e',
+          isReconciliationLoading: false,
+        ),
+      );
     }
   }
 }
