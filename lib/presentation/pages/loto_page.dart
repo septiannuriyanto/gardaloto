@@ -25,6 +25,7 @@ import 'package:gardaloto/presentation/widget/glass_panel.dart';
 import 'package:gardaloto/presentation/widget/generic_error_view.dart';
 import 'package:gardaloto/presentation/widget/glass_fab.dart';
 import 'dart:ui';
+import 'package:gardaloto/core/file_utils.dart';
 
 class LotoPage extends StatefulWidget {
   const LotoPage({super.key});
@@ -45,14 +46,14 @@ class _LotoPageState extends State<LotoPage> {
   Future<void> _init() async {
     final cubit = context.read<LotoCubit>();
 
-    // Only load if we don't have a valid session in memory
-    // This optimization is crucial for Singleton LotoCubit to persist state across navigation
-    if (cubit.state is LotoLoaded &&
-        (cubit.state as LotoLoaded).session != null) {
-      print('✨ Session already loaded in memory, skipping disk reload');
-    } else {
-      // Load active session first to ensure we have the session context
-      await cubit.loadActiveSession();
+    // Always load active session from persistent storage to ensure fresh state
+    // This fixes the issue where returning from History (which uses a different state)
+    // might leave this page showing incorrect data if we didn't reload.
+    await cubit.loadActiveSession();
+
+    // Load manpower data (sync or local) to ensure names are available
+    if (mounted) {
+      context.read<ManpowerCubit>().syncAndLoad();
     }
 
     // Check for lost data (e.g. from camera) after session is loaded
@@ -70,9 +71,13 @@ class _LotoPageState extends State<LotoPage> {
     if (file != null) {
       print('♻️ Recovered lost image data: ${file.path}');
       if (mounted) {
+        // Save to persistent storage
+        final persistentPath = await saveImageToPersistentStorage(file.path);
+        print('💾 Saved recovered image to: $persistentPath');
+
         final cubit = context.read<LotoCubit>();
         // Start capture with recovered image
-        cubit.startCapture(photoPath: file.path);
+        cubit.startCapture(photoPath: persistentPath);
         // Navigate to capture page using push to preserve stack
         context.push('/loto/capture');
       }
@@ -337,6 +342,11 @@ class _LotoPageState extends State<LotoPage> {
             ),
           ),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.list),
+              onPressed: () => context.pushNamed('loto_sessions'),
+              tooltip: 'History',
+            ),
             BlocBuilder<LotoCubit, LotoState>(
               builder: (context, state) {
                 final isSessionActive =
@@ -390,154 +400,168 @@ class _LotoPageState extends State<LotoPage> {
               if (session != null) {
                 // Lookup names from ManpowerCubit
 
-                // Lookup names from ManpowerCubit
-                String fuelmanDisplay = session?.fuelman ?? '-';
-                String operatorDisplay = session?.operatorName ?? '-';
+                return BlocBuilder<ManpowerCubit, ManpowerState>(
+                  builder: (context, manpowerState) {
+                    // Lookup names from ManpowerCubit
+                    String fuelmanDisplay = session?.fuelman ?? '-';
+                    String operatorDisplay = session?.operatorName ?? '-';
 
-                final manpowerState = context.read<ManpowerCubit>().state;
-                if (manpowerState is ManpowerSynced) {
-                  final fuelmanEntity =
-                      manpowerState.fuelmen
-                          .where((e) => e.nrp == session?.fuelman)
-                          .firstOrNull;
-                  if (fuelmanEntity != null) {
-                    fuelmanDisplay = fuelmanEntity.nama ?? session!.fuelman;
-                  }
+                    if (manpowerState is ManpowerSynced) {
+                      final fuelmanEntity =
+                          manpowerState.fuelmen
+                              .where((e) => e.nrp == session?.fuelman)
+                              .firstOrNull;
+                      if (fuelmanEntity != null) {
+                        fuelmanDisplay = fuelmanEntity.nama ?? session!.fuelman;
+                      }
 
-                  final operatorEntity =
-                      manpowerState.operators
-                          .where((e) => e.nrp == session?.operatorName)
-                          .firstOrNull;
-                  if (operatorEntity != null) {
-                    operatorDisplay =
-                        operatorEntity.nama ?? session!.operatorName;
-                  }
-                }
+                      final operatorEntity =
+                          manpowerState.operators
+                              .where((e) => e.nrp == session?.operatorName)
+                              .firstOrNull;
+                      if (operatorEntity != null) {
+                        operatorDisplay =
+                            operatorEntity.nama ?? session!.operatorName;
+                      } else {
+                        // Fallback: Check if operator is actually a fuelman (e.g. FS/FP case)
+                        final fuelmanAsOperator =
+                            manpowerState.fuelmen
+                                .where((e) => e.nrp == session?.operatorName)
+                                .firstOrNull;
+                        if (fuelmanAsOperator != null) {
+                          operatorDisplay =
+                              fuelmanAsOperator.nama ?? session!.operatorName;
+                        }
+                      }
+                    }
 
-                return Column(
-                  children: [
-                    if (session != null)
-                      Flexible(
-                        flex: 0,
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: GlassPanel(
+                    return Column(
+                      children: [
+                        if (session != null)
+                          Flexible(
+                            flex: 0,
                             child: Padding(
                               padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                              child: GlassPanel(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
-                                        'Session Info',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text(
+                                            'Session Info',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete,
+                                              color: Colors.redAccent,
+                                            ),
+                                            onPressed:
+                                                () => _confirmAndDeleteSession(
+                                                  context,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Fuelman: $fuelmanDisplay',
+                                        style: const TextStyle(
+                                          color: Colors.white70,
                                         ),
                                       ),
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.delete,
-                                          color: Colors.redAccent,
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Operator: $operatorDisplay',
+                                        style: const TextStyle(
+                                          color: Colors.white70,
                                         ),
-                                        onPressed:
-                                            () => _confirmAndDeleteSession(
-                                              context,
-                                            ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Warehouse: ${session.warehouseCode}',
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Nomor: ${session.nomor} • Shift: ${session.shift}',
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Tanggal: ${session.dateTime.toLocal().toString().split('.').first}',
+                                        style: const TextStyle(
+                                          color: Colors.white54,
+                                          fontSize: 12,
+                                        ),
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Fuelman: $fuelmanDisplay',
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Operator: $operatorDisplay',
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Warehouse: ${session.warehouseCode}',
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Nomor: ${session.nomor} • Shift: ${session.shift}',
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Tanggal: ${session.dateTime.toLocal().toString().split('.').first}',
-                                    style: const TextStyle(
-                                      color: Colors.white54,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    Flexible(
-                      flex: 1,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child:
-                            records.isEmpty
-                                ? const Center(
-                                  child: Text(
-                                    'No records yet',
-                                    style: TextStyle(color: Colors.white54),
-                                  ),
-                                )
-                                : ListView.builder(
-                                  padding: const EdgeInsets.only(
-                                    top: 8,
-                                    bottom: 88,
-                                  ),
-                                  itemCount: records.length,
-                                  itemBuilder:
-                                      (_, i) => LotoCard(
-                                        entity: records[i],
-                                        isProcessing: context
-                                            .read<LotoCubit>()
-                                            .isProcessing(
-                                              records[i].timestamp
-                                                  .toIso8601String(),
-                                            ),
-                                        onImageTap: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder:
-                                                  (context) =>
-                                                      FullScreenGallery(
-                                                        records: records,
-                                                        initialIndex: i,
-                                                      ),
-                                            ),
-                                          );
-                                        },
+                        Flexible(
+                          flex: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child:
+                                records.isEmpty
+                                    ? const Center(
+                                      child: Text(
+                                        'No records yet',
+                                        style: TextStyle(color: Colors.white54),
                                       ),
-                                ),
-                      ),
-                    ),
-                  ],
+                                    )
+                                    : ListView.builder(
+                                      padding: const EdgeInsets.only(
+                                        top: 8,
+                                        bottom: 88,
+                                      ),
+                                      itemCount: records.length,
+                                      itemBuilder:
+                                          (_, i) => LotoCard(
+                                            entity: records[i],
+                                            isProcessing: context
+                                                .read<LotoCubit>()
+                                                .isProcessing(
+                                                  records[i].timestamp
+                                                      .toIso8601String(),
+                                                ),
+                                            onImageTap: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder:
+                                                      (context) =>
+                                                          FullScreenGallery(
+                                                            records: records,
+                                                            initialIndex: i,
+                                                          ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                    ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 );
               }
 
@@ -605,8 +629,14 @@ class _LotoPageState extends State<LotoPage> {
                     if (image == null) return;
 
                     if (!context.mounted) return;
+
+                    // Save to persistent storage
+                    final persistentPath = await saveImageToPersistentStorage(
+                      image.path,
+                    );
+
                     final cubit = context.read<LotoCubit>();
-                    cubit.startCapture(photoPath: image.path);
+                    cubit.startCapture(photoPath: persistentPath);
 
                     // Navigate to capture form page
                     context.push('/loto/capture');
@@ -628,8 +658,14 @@ class _LotoPageState extends State<LotoPage> {
                       if (image == null) return;
 
                       if (!context.mounted) return;
+
+                      // Save to persistent storage
+                      final persistentPath = await saveImageToPersistentStorage(
+                        image.path,
+                      );
+
                       final cubit = context.read<LotoCubit>();
-                      cubit.startCapture(photoPath: image.path);
+                      cubit.startCapture(photoPath: persistentPath);
 
                       // Navigate to capture form page
                       context.push('/loto/capture');

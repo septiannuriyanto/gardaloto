@@ -21,6 +21,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _nrpCtrl = TextEditingController();
   final TextEditingController _passwordCtrl = TextEditingController();
   String _version = '';
+  bool _isObscure = true;
 
   @override
   void initState() {
@@ -105,6 +106,7 @@ class _LoginPageState extends State<LoginPage> {
                       TextField(
                         controller: _nrpCtrl,
                         style: const TextStyle(color: Colors.white),
+                        onChanged: (_) => setState(() {}),
                         decoration: InputDecoration(
                           labelText: "NRP",
                           labelStyle: const TextStyle(color: Colors.white70),
@@ -112,6 +114,20 @@ class _LoginPageState extends State<LoginPage> {
                             Icons.badge,
                             color: Colors.white70,
                           ),
+                          suffixIcon:
+                              _nrpCtrl.text.isNotEmpty
+                                  ? IconButton(
+                                    icon: const Icon(
+                                      Icons.close,
+                                      color: Colors.white70,
+                                      size: 20,
+                                    ),
+                                    onPressed: () {
+                                      _nrpCtrl.clear();
+                                      setState(() {});
+                                    },
+                                  )
+                                  : null,
                           enabledBorder: OutlineInputBorder(
                             borderSide: BorderSide(
                               color: Colors.white.withOpacity(0.3),
@@ -132,14 +148,45 @@ class _LoginPageState extends State<LoginPage> {
 
                       TextField(
                         controller: _passwordCtrl,
-                        obscureText: true,
+                        obscureText: _isObscure,
                         style: const TextStyle(color: Colors.white),
+                        onChanged: (_) => setState(() {}),
                         decoration: InputDecoration(
                           labelText: "Password",
                           labelStyle: const TextStyle(color: Colors.white70),
                           prefixIcon: const Icon(
                             Icons.lock,
                             color: Colors.white70,
+                          ),
+                          suffixIcon: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (_passwordCtrl.text.isNotEmpty)
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.white70,
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    _passwordCtrl.clear();
+                                    setState(() {});
+                                  },
+                                ),
+                              IconButton(
+                                icon: Icon(
+                                  _isObscure
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                  color: Colors.white70,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _isObscure = !_isObscure;
+                                  });
+                                },
+                              ),
+                            ],
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderSide: BorderSide(

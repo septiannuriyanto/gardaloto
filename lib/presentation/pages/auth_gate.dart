@@ -21,7 +21,9 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
     super.initState();
-    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((
+      data,
+    ) {
       if (data.event == AuthChangeEvent.passwordRecovery) {
         if (mounted) {
           context.go('/update-password');
@@ -45,12 +47,26 @@ class _AuthGateState extends State<AuthGate> {
         }
       },
       builder: (context, state) {
-        if (state is cubit_auth.AuthUnauthenticated) {
-          return const LoginPage();
+        // If authenticated, the listener handles navigation.
+        // For Unauthenticated, Loading, Error, etc., we show LoginPage.
+        // This ensures the LoginPage state (text inputs) is preserved.
+
+        if (state is cubit_auth.AuthAuthenticated) {
+          // Should have navigated away, but if we are here, show loader
+          return const Scaffold(
+            body: AppBackground(
+              child: Center(
+                child: CircularProgressIndicator(color: Colors.cyanAccent),
+              ),
+            ),
+          );
         }
 
+        // For all other states (Unauthenticated, Loading, Error, etc.), show LoginPage
+        // The LoginPage handles its own Loading state for the button.
+        // We also handle displaying the error via SnackBar in the listener/builder.
+
         if (state is cubit_auth.AuthError) {
-          // Show error and stay on login page
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -61,28 +77,9 @@ class _AuthGateState extends State<AuthGate> {
               );
             }
           });
-          return const LoginPage();
         }
 
-        if (state is cubit_auth.AuthPasswordResetEmailSent) {
-          return const LoginPage();
-        }
-
-        if (state is cubit_auth.AuthPasswordUpdated) {
-          return const LoginPage();
-        }
-
-        if (state is cubit_auth.AuthRegistered) {
-          return const LoginPage();
-        }
-
-        return const Scaffold(
-          body: AppBackground(
-            child: Center(
-              child: CircularProgressIndicator(color: Colors.cyanAccent),
-            ),
-          ),
-        );
+        return const LoginPage();
       },
     );
   }

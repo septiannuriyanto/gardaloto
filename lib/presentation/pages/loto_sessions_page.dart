@@ -4,15 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:gardaloto/presentation/cubit/loto_sessions_cubit.dart';
 import 'package:gardaloto/presentation/cubit/storage_cubit.dart';
 import 'package:gardaloto/presentation/cubit/manpower_cubit.dart';
-import 'package:gardaloto/presentation/cubit/auth_cubit.dart';
-import 'package:gardaloto/presentation/cubit/auth_state.dart';
 import 'package:gardaloto/domain/entities/storage_entity.dart';
 import 'package:gardaloto/core/service_locator.dart';
 import 'package:gardaloto/presentation/widget/sidebar.dart';
 import 'dart:ui';
 import 'package:gardaloto/presentation/widget/app_background.dart';
 import 'package:gardaloto/presentation/widget/glass_panel.dart';
-import 'package:gardaloto/presentation/widget/glass_fab.dart';
 import 'package:intl/intl.dart';
 import 'package:gardaloto/core/secret.dart';
 import 'package:share_plus/share_plus.dart';
@@ -946,28 +943,6 @@ class _LotoSessionsViewState extends State<_LotoSessionsView> {
             ),
           ],
         ),
-      ),
-      floatingActionButton: BlocBuilder<AuthCubit, AuthState>(
-        builder: (context, authState) {
-          bool canCreate = false;
-          if (authState is AuthAuthenticated) {
-            final user = authState.user;
-            final allowedPos = [0, 1, 2, 3, 5];
-            canCreate = allowedPos.contains(user.position);
-          }
-
-          return GlassFAB(
-            onPressed:
-                canCreate
-                    ? () {
-                      context.push('/loto/entry');
-                    }
-                    : null,
-            icon: const Icon(Icons.post_add),
-            tooltip: 'New Session',
-            enabled: canCreate,
-          );
-        },
       ),
     );
   }

@@ -139,8 +139,8 @@ class DashboardCubit extends Cubit<DashboardState> {
 
     // ... Date buckets ...
     List<DateTime> dateRange = [];
-    // Start from 1, exclude today (0)
-    for (int i = daysToShow; i >= 1; i--) {
+    // Start from daysToShow - 1, down to 0 (Include Today)
+    for (int i = daysToShow - 1; i >= 0; i--) {
       final d = DateTime.now().subtract(Duration(days: i));
       dateRange.add(DateTime(d.year, d.month, d.day));
     }

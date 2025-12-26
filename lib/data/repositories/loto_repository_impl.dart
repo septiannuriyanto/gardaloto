@@ -67,9 +67,24 @@ class LotoRepositoryImpl implements LotoRepository {
 
   @override
   Future<void> deleteLocalSessionRecords(String sessionCode) async {
+    final recordsToDelete =
+        _box.values.where((e) => e.sessionId == sessionCode).toList();
+
+    for (final record in recordsToDelete) {
+      // Delete physical file
+      try {
+        final file = File(record.photoPath);
+        if (await file.exists()) {
+          await file.delete();
+          print('🗑️ Deleted file: ${record.photoPath}');
+        }
+      } catch (e) {
+        print('⚠️ Failed to delete file ${record.photoPath}: $e');
+      }
+    }
+
     final keysToDelete =
-        _box.values
-            .where((e) => e.sessionId == sessionCode)
+        recordsToDelete
             .map((e) => e.timestampTaken.millisecondsSinceEpoch.toString())
             .toList();
 
@@ -211,6 +226,21 @@ class LotoRepositoryImpl implements LotoRepository {
               )
               .toList();
       await _supabaseClient.from('loto_records').insert(recordData);
+
+      // Clean up local files after successful upload and DB insert
+      for (final record in records) {
+        try {
+          final file = File(record.photoPath);
+          if (await file.exists()) {
+            await file.delete();
+            print('🗑️ Cleanup: Deleted uploaded file ${record.photoPath}');
+          }
+        } catch (e) {
+          print(
+            '⚠️ Cleanup: Failed to delete uploaded file ${record.photoPath}: $e',
+          );
+        }
+      }
     } catch (e) {
       // Re-throw the exception to be handled by the UI
       rethrow;
@@ -375,6 +405,21 @@ class LotoRepositoryImpl implements LotoRepository {
               )
               .toList();
       await _supabaseClient.from('loto_records').insert(recordData);
+
+      // Clean up local files after successful upload and DB insert
+      for (final record in records) {
+        try {
+          final file = File(record.photoPath);
+          if (await file.exists()) {
+            await file.delete();
+            print('🗑️ Cleanup: Deleted uploaded file ${record.photoPath}');
+          }
+        } catch (e) {
+          print(
+            '⚠️ Cleanup: Failed to delete uploaded file ${record.photoPath}: $e',
+          );
+        }
+      }
     } catch (e) {
       // Re-throw the exception to be handled by the UI
       rethrow;

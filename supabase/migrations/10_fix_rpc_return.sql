@@ -22,7 +22,8 @@ BEGIN
     SELECT ls.session_code
     FROM loto_sessions ls
     WHERE TRIM(ls.fuelman) = p_nrp
-      AND date(ls.created_at) = p_date
+      -- Use session_code date parsing to match Dashboard logic
+      AND to_date(substring(ls.session_code from 1 for 6), 'YYMMDD') = p_date
       AND ls.create_shift = p_shift
   ),
   verifications AS (

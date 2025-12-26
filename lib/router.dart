@@ -62,8 +62,6 @@ final router = GoRouter(
       builder: (_, __) => const UpdatePasswordPage(),
     ),
 
-
-
     GoRoute(
       path: '/dashboard',
       name: 'dashboard',
@@ -77,20 +75,20 @@ final router = GoRouter(
     GoRoute(
       path: '/loto',
       name: 'loto',
-      builder: (_, __) => const LotoSessionsPage(),
+      builder: (context, state) {
+        return MultiBlocProvider(
+          providers: [
+            BlocProvider(create: (_) => sl<ManpowerCubit>()),
+            BlocProvider(create: (_) => sl<StorageCubit>()),
+          ],
+          child: const LotoPage(),
+        );
+      },
       routes: [
         GoRoute(
-          path: 'entry',
-          name: 'loto_entry',
-          builder: (context, state) {
-            return MultiBlocProvider(
-              providers: [
-                BlocProvider(create: (_) => sl<ManpowerCubit>()),
-                BlocProvider(create: (_) => sl<StorageCubit>()),
-              ],
-              child: const LotoPage(),
-            );
-          },
+          path: 'sessions',
+          name: 'loto_sessions',
+          builder: (_, __) => const LotoSessionsPage(),
         ),
         GoRoute(
           path: 'capture',

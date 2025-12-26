@@ -15,6 +15,7 @@ import 'package:gardaloto/core/service_locator.dart';
 import 'package:gardaloto/domain/repositories/loto_repository.dart';
 import 'package:gardaloto/presentation/pages/achievement_fuelman_detail_page.dart';
 import 'package:gardaloto/presentation/cubit/fuelman_detail_cubit.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -37,6 +38,22 @@ class _DashboardView extends StatefulWidget {
 
 class _DashboardViewState extends State<_DashboardView> {
   final ScrollController _chartScrollController = ScrollController();
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _version = info.version;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -71,7 +88,24 @@ class _DashboardViewState extends State<_DashboardView> {
         extendBodyBehindAppBar: true, // Allow gradient to go behind AppBar
         drawer: const Sidebar(),
         appBar: AppBar(
-          title: const Text('Dashboard', style: TextStyle(color: Colors.white)),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Dashboard',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18, // Reduced from default
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (_version.isNotEmpty)
+                Text(
+                  'v$_version',
+                  style: const TextStyle(color: Colors.white70, fontSize: 10),
+                ),
+            ],
+          ),
           backgroundColor: Colors.transparent, // Glass AppBar
           elevation: 0,
           iconTheme: const IconThemeData(color: Colors.white),

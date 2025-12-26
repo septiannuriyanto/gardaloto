@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:gardaloto/core/file_utils.dart'; // Import file_utils
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'package:gardaloto/presentation/cubit/loto_cubit.dart';
 import 'package:gardaloto/presentation/cubit/loto_state.dart';
 import 'package:gardaloto/presentation/cubit/manpower_cubit.dart';
 import 'package:gardaloto/presentation/cubit/storage_cubit.dart';
+import 'package:gardaloto/domain/repositories/loto_repository.dart';
 import 'package:gardaloto/presentation/cubit/auth_cubit.dart';
 import 'package:gardaloto/presentation/cubit/auth_state.dart';
 import 'package:gardaloto/presentation/widget/full_screen_gallery.dart';
@@ -37,7 +39,7 @@ class LotoReviewPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider.value(value: sl<LotoCubit>()),
+        BlocProvider(create: (_) => LotoCubit(sl<LotoRepository>())),
         BlocProvider(create: (_) => sl<ManpowerCubit>()..syncAndLoad()),
         BlocProvider(create: (_) => sl<StorageCubit>()..syncAndLoad()),
       ],
@@ -72,9 +74,12 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
 
     if (!context.mounted) return;
 
+    // Save to persistent storage
+    final persistentPath = await saveImageToPersistentStorage(image.path);
+
     // Start capture state in the CURRENT loto cubit (which is scoped to this session)
     final cubit = context.read<LotoCubit>();
-    cubit.startCapture(photoPath: image.path);
+    cubit.startCapture(photoPath: persistentPath);
 
     // Push to the unified CaptureFormPage
     // Pass the cubit as extra so the router can provide it

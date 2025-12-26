@@ -193,12 +193,27 @@ class LotoCard extends StatelessWidget {
                     if (!entity.photoPath.startsWith('http'))
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          "Size: ${_getFileSize(entity.photoPath)}",
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.cyanAccent,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Size: ${_getFileSize(entity.photoPath)}",
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.cyanAccent,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              "Path: ${entity.photoPath}",
+                              style: const TextStyle(
+                                fontSize: 9,
+                                color: Colors.white30,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
                   ],

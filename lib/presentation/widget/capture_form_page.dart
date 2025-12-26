@@ -52,9 +52,15 @@ class _CaptureFormPageState extends State<CaptureFormPage> {
     // Auto focus and scroll to bottom
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _textFocus.requestFocus();
+        // Delay focus request to ensure page transition is complete and keyboard pops up
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            _textFocus.requestFocus();
+          }
+        });
+
         // Small delay to ensure keyboard opens before scrolling
-        Future.delayed(const Duration(milliseconds: 300), () {
+        Future.delayed(const Duration(milliseconds: 800), () {
           if (mounted) {
             _scrollController.animateTo(
               _scrollController.position.maxScrollExtent,
@@ -92,15 +98,15 @@ class _CaptureFormPageState extends State<CaptureFormPage> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-           // Fallback to last known location if permission denied
-           await _tryFallbackLocation(cubit, 'Location permission denied');
+          // Fallback to last known location if permission denied
+          await _tryFallbackLocation(cubit, 'Location permission denied');
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-         // Fallback to last known location if permission denied forever
-         await _tryFallbackLocation(cubit, 'Location permission denied forever');
+        // Fallback to last known location if permission denied forever
+        await _tryFallbackLocation(cubit, 'Location permission denied forever');
         return;
       }
 
@@ -123,7 +129,7 @@ class _CaptureFormPageState extends State<CaptureFormPage> {
       final position = await Geolocator.getCurrentPosition(
         locationSettings: locationSettings,
       );
-      
+
       if (mounted) {
         // Save successful location to persistence
         // Access repo via cubit if possible or SL. Cubit.repo is public final.
@@ -141,22 +147,28 @@ class _CaptureFormPageState extends State<CaptureFormPage> {
     }
   }
 
-  Future<void> _tryFallbackLocation(LotoCubit cubit, String originalError) async {
+  Future<void> _tryFallbackLocation(
+    LotoCubit cubit,
+    String originalError,
+  ) async {
     print('⚠️ GPS failed: $originalError. Attempting fallback...');
     final lastKnown = await cubit.repo.getLastKnownLocation();
-    
+
     if (mounted) {
       if (lastKnown != null) {
         final (lat, lng) = lastKnown;
         print('✅ Using last known location: $lat, $lng');
-        
+
         cubit.updateLocation(lat, lng);
-        _wm3Ctrl.text = 'GPS (Last Known): ${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}';
-        
+        _wm3Ctrl.text =
+            'GPS (Last Known): ${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}';
+
         // Show snackbar to inform user
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('GPS unavailable ($originalError). Using last known location.'),
+            content: Text(
+              'GPS unavailable ($originalError). Using last known location.',
+            ),
             backgroundColor: Colors.orange,
             duration: const Duration(seconds: 3),
           ),
@@ -526,6 +538,16 @@ class _CaptureFormPageState extends State<CaptureFormPage> {
                                 ),
                               ],
 
+                              const Text(
+                                "Ketik nomor unit dan pilih dengan tap dari rekomendasi yang ada. Kalau tidak ada muncul, ketik manual lalu klik submit",
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+
                               // Unit code autocomplete
                               TextFormField(
                                 controller: _textCtrl,
@@ -682,22 +704,31 @@ class _CaptureFormPageState extends State<CaptureFormPage> {
                                     // We pass the raw data to the Cubit, which saves it immediately
                                     // and then processes the image in the background.
 
-                                    final sessionId = state.session?.nomor ?? "default_session";
+                                    final sessionId =
+                                        state.session?.nomor ??
+                                        "default_session";
                                     print('📝 Session ID: $sessionId');
 
                                     if (!context.mounted) return;
 
                                     try {
-                                      print('💾 Starting FAST submit to cubit...');
-                                      
+                                      print(
+                                        '💾 Starting FAST submit to cubit...',
+                                      );
+
                                       // Extract metadata for watermarking
-                                      final nrp = _wm1Ctrl.text.replaceFirst('NRP: ', '');
-                                      final gps = '${state.lat.toStringAsFixed(5)}, ${state.lng.toStringAsFixed(5)}';
-                                      
+                                      final nrp = _wm1Ctrl.text.replaceFirst(
+                                        'NRP: ',
+                                        '',
+                                      );
+                                      final gps =
+                                          '${state.lat.toStringAsFixed(5)}, ${state.lng.toStringAsFixed(5)}';
+
                                       await context.read<LotoCubit>().submit(
                                         LotoEntity(
                                           codeNumber: upperText,
-                                          photoPath: state.photoPath, // Send RAW path
+                                          photoPath:
+                                              state.photoPath, // Send RAW path
                                           timestamp: state.timestamp,
                                           latitude: state.lat,
                                           longitude: state.lng,
@@ -711,7 +742,9 @@ class _CaptureFormPageState extends State<CaptureFormPage> {
                                       print('✅ Submit initiated');
 
                                       if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
                                           const SnackBar(
                                             content: Text('Saved successfully'),
                                             backgroundColor: Colors.green,

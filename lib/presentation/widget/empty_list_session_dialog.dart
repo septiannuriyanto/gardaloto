@@ -36,6 +36,7 @@ class _EmptyListSessionDialogState extends State<EmptyListSessionDialog> {
   String? _fuelman;
   String? _operator;
   String _warehouse = 'FT01';
+  bool _showOperatorInput = true;
 
   @override
   void initState() {
@@ -50,6 +51,9 @@ class _EmptyListSessionDialogState extends State<EmptyListSessionDialog> {
       _fuelman = widget.initialMaster!.fuelman;
       _operator = widget.initialMaster!.operatorName;
       _warehouse = widget.initialMaster!.warehouseCode;
+      _updateOperatorVisibility(_warehouse);
+    } else {
+      _updateOperatorVisibility(_warehouse);
     }
   }
 
@@ -73,6 +77,24 @@ class _EmptyListSessionDialogState extends State<EmptyListSessionDialog> {
     // BBBB: warehouse code (assumed to be 'FTxx'); ensure it's 4 chars
     final wh = warehouse.padLeft(4).substring(0, 4);
     return '$datePart$shiftCode$wh';
+  }
+
+  void _updateOperatorVisibility(String warehouseCode) {
+    if (warehouseCode.toUpperCase().startsWith('FT')) {
+      setState(() {
+        _showOperatorInput = true;
+        // Reset operator to null so user must select, and to avoid invalid value
+        // if previous value (from auto-fill) is not in the operator list.
+        _operator = null;
+      });
+    } else {
+      // For FS/FP or others
+      setState(() {
+        _showOperatorInput = false;
+        // Auto-set operator to match fuelman when hidden
+        _operator = _fuelman;
+      });
+    }
   }
 
   Future<void> _pickDate() async {
@@ -220,149 +242,7 @@ class _EmptyListSessionDialogState extends State<EmptyListSessionDialog> {
                   ),
                   const SizedBox(height: 16),
 
-                  BlocBuilder<ManpowerCubit, ManpowerState>(
-                    builder: (context, state) {
-                      List<DropdownMenuItem<String>> fuelmanItems = [];
-                      List<DropdownMenuItem<String>> operatorItems = [];
-
-                      if (state is ManpowerSynced) {
-                        // Sort by name
-                        final fuelmen = List<ManpowerEntity>.from(state.fuelmen)
-                          ..sort(
-                            (a, b) => (a.nama ?? '').compareTo(b.nama ?? ''),
-                          );
-                        final operators = List<ManpowerEntity>.from(
-                          state.operators,
-                        )..sort(
-                          (a, b) => (a.nama ?? '').compareTo(b.nama ?? ''),
-                        );
-
-                        fuelmanItems =
-                            fuelmen.map((e) {
-                              return DropdownMenuItem(
-                                value: e.nrp,
-                                child: Text(
-                                  e.nama ?? '-',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.black87,
-                                  ), // Dropdown items need dark text on light popup usually, unless theme is full dark
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              );
-                            }).toList();
-
-                        operatorItems =
-                            operators.map((e) {
-                              return DropdownMenuItem(
-                                value: e.nrp,
-                                child: Text(
-                                  e.nama ?? '-',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.black87,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              );
-                            }).toList();
-                      }
-
-                      // Auto-fill logic
-                      String? defaultFuelman;
-                      String? defaultOperator;
-
-                      if (widget.currentUser != null &&
-                          widget.initialMaster == null) {
-                        if (fuelmanItems.any(
-                          (e) => e.value == widget.currentUser!.nrp,
-                        )) {
-                          defaultFuelman = widget.currentUser!.nrp;
-                        }
-                        if (operatorItems.any(
-                          (e) => e.value == widget.currentUser!.nrp,
-                        )) {
-                          defaultOperator = widget.currentUser!.nrp;
-                        }
-                      }
-
-                      final effectiveFuelman = _fuelman ?? defaultFuelman;
-                      final effectiveOperator = _operator ?? defaultOperator;
-                      return Column(
-                        children: [
-                          DropdownButtonFormField<String>(
-                            value: effectiveFuelman,
-                            dropdownColor: Colors.white,
-                            decoration: const InputDecoration(
-                              labelText: 'Nama Fuelman',
-                              labelStyle: TextStyle(color: Colors.white70),
-                              enabledBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.white30),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.cyanAccent,
-                                ),
-                              ),
-                              filled: true,
-                              fillColor: Colors.white10,
-                            ),
-                            style: const TextStyle(color: Colors.white),
-                            items: fuelmanItems,
-                            selectedItemBuilder: (context) {
-                              return fuelmanItems.map((e) {
-                                return Text(
-                                  (e.child as Text).data ?? '-',
-                                  style: const TextStyle(color: Colors.white),
-                                  overflow: TextOverflow.ellipsis,
-                                );
-                              }).toList();
-                            },
-                            onChanged: (v) => setState(() => _fuelman = v),
-                            validator: (v) => v == null ? 'Required' : null,
-                            isExpanded: true,
-                            onSaved: (v) => _fuelman = v,
-                          ),
-                          const SizedBox(height: 16),
-                          DropdownButtonFormField<String>(
-                            value: effectiveOperator,
-                            dropdownColor: Colors.white,
-                            decoration: const InputDecoration(
-                              labelText: 'Nama Operator',
-                              labelStyle: TextStyle(color: Colors.white70),
-                              enabledBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.white30),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.cyanAccent,
-                                ),
-                              ),
-                              filled: true,
-                              fillColor: Colors.white10,
-                            ),
-                            style: const TextStyle(color: Colors.white),
-                            items: operatorItems,
-                            selectedItemBuilder: (context) {
-                              return operatorItems.map((e) {
-                                return Text(
-                                  (e.child as Text).data ?? '-',
-                                  style: const TextStyle(color: Colors.white),
-                                  overflow: TextOverflow.ellipsis,
-                                );
-                              }).toList();
-                            },
-                            onChanged: (v) => setState(() => _operator = v),
-                            validator: (v) => v == null ? 'Required' : null,
-                            isExpanded: true,
-                            onSaved: (v) => _operator = v,
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
+                  // Warehouse (Restored)
                   BlocBuilder<StorageCubit, StorageState>(
                     bloc: widget.storageCubit,
                     builder: (context, state) {
@@ -422,12 +302,160 @@ class _EmptyListSessionDialogState extends State<EmptyListSessionDialog> {
                         onChanged: (v) {
                           if (v == null) return;
                           setState(() => _warehouse = v);
+                          _updateOperatorVisibility(v);
                         },
                         isExpanded: true,
                       );
                     },
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 16),
+
+                  BlocBuilder<ManpowerCubit, ManpowerState>(
+                    builder: (context, state) {
+                      List<DropdownMenuItem<String>> fuelmanItems = [];
+                      List<DropdownMenuItem<String>> operatorItems = [];
+
+                      if (state is ManpowerSynced) {
+                        // Sort by name
+                        final fuelmen = List<ManpowerEntity>.from(state.fuelmen)
+                          ..sort(
+                            (a, b) => (a.nama ?? '').compareTo(b.nama ?? ''),
+                          );
+                        final operators = List<ManpowerEntity>.from(
+                          state.operators,
+                        )..sort(
+                          (a, b) => (a.nama ?? '').compareTo(b.nama ?? ''),
+                        );
+
+                        fuelmanItems =
+                            fuelmen.map((e) {
+                              return DropdownMenuItem(
+                                value: e.nrp,
+                                child: Text(
+                                  e.nama ?? '-',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.black87,
+                                  ), // Dropdown items need dark text on light popup usually, unless theme is full dark
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList();
+
+                        operatorItems =
+                            operators.map((e) {
+                              return DropdownMenuItem(
+                                value: e.nrp,
+                                child: Text(
+                                  e.nama ?? '-',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.black87,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList();
+                      }
+
+                      // Auto-fill logic
+                      String? defaultFuelman;
+                      String? defaultOperator;
+
+                      if (widget.currentUser != null &&
+                          widget.initialMaster == null) {
+                        if (fuelmanItems.any(
+                          (e) => e.value == widget.currentUser!.nrp,
+                        )) {
+                          defaultFuelman = widget.currentUser!.nrp;
+                        }
+                        if (_showOperatorInput &&
+                            operatorItems.any(
+                              (e) => e.value == widget.currentUser!.nrp,
+                            )) {
+                          defaultOperator = widget.currentUser!.nrp;
+                        }
+                      }
+
+                      final effectiveFuelman = _fuelman ?? defaultFuelman;
+                      final effectiveOperator = _operator ?? defaultOperator;
+                      return Column(
+                        children: [
+                          DropdownButtonFormField<String>(
+                            value: effectiveFuelman,
+                            dropdownColor: Colors.white,
+                            decoration: const InputDecoration(
+                              labelText: 'Nama Fuelman',
+                              labelStyle: TextStyle(color: Colors.white70),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.white30),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.cyanAccent,
+                                ),
+                              ),
+                              filled: true,
+                              fillColor: Colors.white10,
+                            ),
+                            style: const TextStyle(color: Colors.white),
+                            items: fuelmanItems,
+                            selectedItemBuilder: (context) {
+                              return fuelmanItems.map((e) {
+                                return Text(
+                                  (e.child as Text).data ?? '-',
+                                  style: const TextStyle(color: Colors.white),
+                                  overflow: TextOverflow.ellipsis,
+                                );
+                              }).toList();
+                            },
+                            onChanged: (v) => setState(() => _fuelman = v),
+                            validator: (v) => v == null ? 'Required' : null,
+                            isExpanded: true,
+                            onSaved: (v) => _fuelman = v,
+                          ),
+                          if (_showOperatorInput) ...[
+                            const SizedBox(height: 16),
+                            DropdownButtonFormField<String>(
+                              value: effectiveOperator,
+                              dropdownColor: Colors.white,
+                              decoration: const InputDecoration(
+                                labelText: 'Nama Operator',
+                                labelStyle: TextStyle(color: Colors.white70),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.white30),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: Colors.cyanAccent,
+                                  ),
+                                ),
+                                filled: true,
+                                fillColor: Colors.white10,
+                              ),
+                              style: const TextStyle(color: Colors.white),
+                              items: operatorItems,
+                              selectedItemBuilder: (context) {
+                                return operatorItems.map((e) {
+                                  return Text(
+                                    (e.child as Text).data ?? '-',
+                                    style: const TextStyle(color: Colors.white),
+                                    overflow: TextOverflow.ellipsis,
+                                  );
+                                }).toList();
+                              },
+                              onChanged: (v) => setState(() => _operator = v),
+                              validator: (v) => v == null ? 'Required' : null,
+                              isExpanded: true,
+                              onSaved: (v) => _operator = v,
+                            ),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -441,6 +469,11 @@ class _EmptyListSessionDialogState extends State<EmptyListSessionDialog> {
                       const SizedBox(width: 16),
                       ElevatedButton(
                         onPressed: () {
+                          // Before validate, ensure operator is set if hidden
+                          if (!_showOperatorInput) {
+                            _operator = _fuelman;
+                          }
+
                           final form = _formKey.currentState;
                           if (form == null || !form.validate()) return;
                           form.save();

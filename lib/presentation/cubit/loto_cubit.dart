@@ -255,6 +255,24 @@ class LotoCubit extends Cubit<LotoState> {
     print('↩️ cancelCapture called');
     if (state is LotoCapturing) {
       final currentState = state as LotoCapturing;
+
+      // Clean up the temp/persistent file since we are cancelling
+      final file = File(currentState.photoPath);
+      file.exists().then((exists) {
+        if (exists) {
+          file
+              .delete()
+              .then(
+                (_) => print(
+                  '🗑️ Cancelled capture: Deleted ${currentState.photoPath}',
+                ),
+              )
+              .catchError(
+                (e) => print('⚠️ Failed to delete file on cancel: $e'),
+              );
+        }
+      });
+
       // Restore previous session and records
       emit(
         LotoLoaded(
@@ -362,7 +380,20 @@ class LotoCubit extends Cubit<LotoState> {
 
       print('✅ Background: DB updated with watermarked image.');
 
-      // 3. Cleanup
+      // 3. Cleanup Raw File
+      // Since we have a new compressed file, delete the large raw one
+      // Make sure we are not deleting the same file (in case overwrite happened, though suffix prevents it)
+      if (rawEntity.photoPath != finalPath) {
+        final rawFile = File(rawEntity.photoPath);
+        if (await rawFile.exists()) {
+          await rawFile.delete();
+          print(
+            '🗑️ Background: Deleted raw original file: ${rawEntity.photoPath}',
+          );
+        }
+      }
+
+      // 4. Cleanup Id
       _processingIds.remove(id);
 
       // 4. Emit updated state (thumbnail will change from Skeleton to Image)

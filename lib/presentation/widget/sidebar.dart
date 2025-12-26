@@ -50,18 +50,38 @@ class Sidebar extends StatelessWidget {
                             const SizedBox(height: 12),
                             const Text(
                               'GardaLoto',
-                              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      _buildListTile(context, 'Dashboard', Icons.home, 'dashboard'),
+                      _buildListTile(
+                        context,
+                        'Dashboard',
+                        Icons.home,
+                        'dashboard',
+                      ),
                       _buildListTile(context, 'LOTO', Icons.lock, 'loto'),
-                      _buildListTile(context, 'Fit To Work', Icons.health_and_safety, 'fit'),
-                      _buildListTile(context, 'Ready To Work', Icons.check_circle, 'ready'),
+                      _buildListTile(
+                        context,
+                        'Fit To Work',
+                        Icons.health_and_safety,
+                        'fit',
+                      ),
+                      _buildListTile(
+                        context,
+                        'Ready To Work',
+                        Icons.check_circle,
+                        'ready',
+                      ),
                       BlocBuilder<AuthCubit, AuthState>(
                         builder: (context, state) {
-                          if (state is AuthAuthenticated && state.user.position == 0) {
+                          if (state is AuthAuthenticated &&
+                              state.user.position == 0) {
                             return _buildListTile(
                               context,
                               'Control Panel',
@@ -116,7 +136,12 @@ class Sidebar extends StatelessWidget {
     );
   }
 
-  Widget _buildListTile(BuildContext context, String title, IconData icon, String routeName) {
+  Widget _buildListTile(
+    BuildContext context,
+    String title,
+    IconData icon,
+    String routeName,
+  ) {
     return ListTile(
       leading: Icon(icon, color: Colors.white70),
       title: Text(title, style: const TextStyle(color: Colors.white)),
