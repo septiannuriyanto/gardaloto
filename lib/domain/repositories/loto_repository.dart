@@ -13,6 +13,8 @@ abstract class LotoRepository {
   Future<LotoSession?> getActiveSession();
   Future<void> clearActiveSession();
 
+  Future<void> deleteSession(String sessionCode);
+
   /// Untuk autocomplete unit code
   Future<List<String>> fetchUnitCodes();
 

@@ -102,15 +102,17 @@ class LotoSessionsCubit extends Cubit<LotoSessionsState> {
     String status = 'All',
   }) async {
     emit(LotoSessionsLoading());
-    
+
     // 1. Check Connection explicitly
     final hasInternet = await NetworkUtils.hasInternetConnection();
     if (!hasInternet) {
-      emit(const LotoSessionsError("Offline Mode. Using local data if available."));
-      // Ideally here we would try to load local sessions if cached, 
+      emit(
+        const LotoSessionsError("Offline Mode. Using local data if available."),
+      );
+      // Ideally here we would try to load local sessions if cached,
       // but for now fail gracefully or show empty state if no cache strategy exists here.
       // Since fetchSessions is primary, we return early to avoid crash.
-      return; 
+      return;
     }
 
     try {
@@ -202,6 +204,28 @@ class LotoSessionsCubit extends Cubit<LotoSessionsState> {
       operatorName: operatorName ?? currentOperator,
       status: status ?? currentStatus,
     );
+  }
+
+  Future<void> deleteSession(String sessionCode) async {
+    try {
+      // Optimistic Update: Remove from list immediately
+      if (state is LotoSessionsLoaded) {
+        final loaded = state as LotoSessionsLoaded;
+        final updatedList =
+            loaded.sessions.where((s) => s.nomor != sessionCode).toList();
+        emit(loaded.copyWith(sessions: updatedList));
+      }
+
+      await _repository.deleteSession(sessionCode);
+
+      // No need to re-fetch if successful, but if it fails, we might want to revert or reload.
+      // For now, assume success.
+    } catch (e) {
+      // If fails, reload to get true state back
+      emit(LotoSessionsError("Failed to delete session: $e"));
+      // Refresh list to restore the item
+      await updateFilters();
+    }
   }
 
   void updateSessionCounts(String sessionNomor, int remote, int local) {

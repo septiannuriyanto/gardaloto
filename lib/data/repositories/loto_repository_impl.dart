@@ -143,6 +143,21 @@ class LotoRepositoryImpl implements LotoRepository {
   }
 
   @override
+  Future<void> deleteSession(String sessionCode) async {
+    // 1. Delete from Supabase (Cascade should handle records, but to be safe/explicit)
+    // Actually, loto_records usually have ON DELETE CASCADE foreign key to loto_sessions.
+    // If not, we'd need to delete records first. Assuming Cascade or manual delete.
+    // Let's try deleting session directly.
+    await _supabaseClient
+        .from('loto_sessions')
+        .delete()
+        .eq('session_code', sessionCode);
+
+    // 2. Clear local cache for this session (files and hive records)
+    await deleteLocalSessionRecords(sessionCode);
+  }
+
+  @override
   @override
   Future<void> sendReport(
     LotoSession session,

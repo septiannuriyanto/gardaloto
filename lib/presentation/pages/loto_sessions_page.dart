@@ -14,6 +14,8 @@ import 'package:intl/intl.dart';
 import 'package:gardaloto/core/secret.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:gardaloto/presentation/widget/generic_error_view.dart';
+import 'package:gardaloto/presentation/cubit/auth_cubit.dart';
+import 'package:gardaloto/presentation/cubit/auth_state.dart';
 
 class LotoSessionsPage extends StatelessWidget {
   const LotoSessionsPage({super.key});
@@ -717,6 +719,164 @@ class _LotoSessionsViewState extends State<_LotoSessionsView> {
                                                         Share.share(text);
                                                       },
                                                     ),
+                                                  ),
+                                                  // Delete Button for Incumbent Creator (Position == 0)
+                                                  BlocBuilder<
+                                                    AuthCubit,
+                                                    AuthState
+                                                  >(
+                                                    builder: (
+                                                      context,
+                                                      authState,
+                                                    ) {
+                                                      if (authState
+                                                              is AuthAuthenticated &&
+                                                          authState
+                                                                  .user
+                                                                  .position ==
+                                                              0) {
+                                                        return Padding(
+                                                          padding:
+                                                              const EdgeInsets.only(
+                                                                left: 8.0,
+                                                              ),
+                                                          child: SizedBox(
+                                                            width: 24,
+                                                            height: 24,
+                                                            child: IconButton(
+                                                              padding:
+                                                                  EdgeInsets
+                                                                      .zero,
+                                                              icon: const Icon(
+                                                                Icons.delete,
+                                                                size: 16,
+                                                                color:
+                                                                    Colors
+                                                                        .redAccent,
+                                                              ),
+                                                              tooltip:
+                                                                  'Delete Session',
+                                                              onPressed: () async {
+                                                                final confirm = await showDialog<
+                                                                  bool
+                                                                >(
+                                                                  context:
+                                                                      context,
+                                                                  builder:
+                                                                      (
+                                                                        context,
+                                                                      ) => Dialog(
+                                                                        backgroundColor:
+                                                                            Colors.transparent,
+                                                                        child: GlassPanel(
+                                                                          padding: const EdgeInsets.all(
+                                                                            24,
+                                                                          ),
+                                                                          child: Column(
+                                                                            mainAxisSize:
+                                                                                MainAxisSize.min,
+                                                                            children: [
+                                                                              const Icon(
+                                                                                Icons.warning_amber_rounded,
+                                                                                color:
+                                                                                    Colors.redAccent,
+                                                                                size:
+                                                                                    48,
+                                                                              ),
+                                                                              const SizedBox(
+                                                                                height:
+                                                                                    16,
+                                                                              ),
+                                                                              const Text(
+                                                                                'Delete Session?',
+                                                                                style: TextStyle(
+                                                                                  color:
+                                                                                      Colors.white,
+                                                                                  fontSize:
+                                                                                      18,
+                                                                                  fontWeight:
+                                                                                      FontWeight.bold,
+                                                                                ),
+                                                                              ),
+                                                                              const SizedBox(
+                                                                                height:
+                                                                                    8,
+                                                                              ),
+                                                                              Text(
+                                                                                'This will permanently delete session ${session.nomor} and all its records.',
+                                                                                textAlign:
+                                                                                    TextAlign.center,
+                                                                                style: const TextStyle(
+                                                                                  color:
+                                                                                      Colors.white70,
+                                                                                ),
+                                                                              ),
+                                                                              const SizedBox(
+                                                                                height:
+                                                                                    24,
+                                                                              ),
+                                                                              Row(
+                                                                                mainAxisAlignment:
+                                                                                    MainAxisAlignment.spaceEvenly,
+                                                                                children: [
+                                                                                  TextButton(
+                                                                                    onPressed:
+                                                                                        () => Navigator.pop(
+                                                                                          context,
+                                                                                          false,
+                                                                                        ),
+                                                                                    child: const Text(
+                                                                                      'Cancel',
+                                                                                      style: TextStyle(
+                                                                                        color:
+                                                                                            Colors.white70,
+                                                                                      ),
+                                                                                    ),
+                                                                                  ),
+                                                                                  ElevatedButton(
+                                                                                    style: ElevatedButton.styleFrom(
+                                                                                      backgroundColor:
+                                                                                          Colors.redAccent,
+                                                                                      foregroundColor:
+                                                                                          Colors.white,
+                                                                                    ),
+                                                                                    onPressed:
+                                                                                        () => Navigator.pop(
+                                                                                          context,
+                                                                                          true,
+                                                                                        ),
+                                                                                    child: const Text(
+                                                                                      'Delete',
+                                                                                    ),
+                                                                                  ),
+                                                                                ],
+                                                                              ),
+                                                                            ],
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                );
+
+                                                                if (confirm ==
+                                                                        true &&
+                                                                    context
+                                                                        .mounted) {
+                                                                  context
+                                                                      .read<
+                                                                        LotoSessionsCubit
+                                                                      >()
+                                                                      .deleteSession(
+                                                                        session
+                                                                            .nomor,
+                                                                      );
+                                                                }
+                                                              },
+                                                            ),
+                                                          ),
+                                                        );
+                                                      }
+                                                      return const SizedBox.shrink();
+                                                    },
                                                   ),
                                                 ],
                                               ),

@@ -509,6 +509,14 @@ class _LotoPageState extends State<LotoPage> {
                                           fontSize: 12,
                                         ),
                                       ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Record Count : ${records.length}',
+                                        style: const TextStyle(
+                                          color: Colors.tealAccent,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
