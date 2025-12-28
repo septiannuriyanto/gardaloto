@@ -6,7 +6,7 @@ import 'package:gardaloto/presentation/cubit/auth_state.dart';
 import 'package:gardaloto/presentation/widget/app_background.dart';
 import 'package:gardaloto/presentation/widget/glass_panel.dart';
 import 'dart:ui';
-import 'package:package_info_plus/package_info_plus.dart';
+import 'package:gardaloto/core/constants.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -20,22 +20,11 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _nrpCtrl = TextEditingController();
   final TextEditingController _passwordCtrl = TextEditingController();
-  String _version = '';
   bool _isObscure = true;
 
   @override
   void initState() {
     super.initState();
-    _loadVersion();
-  }
-
-  Future<void> _loadVersion() async {
-    final info = await PackageInfo.fromPlatform();
-    if (mounted) {
-      setState(() {
-        _version = info.version;
-      });
-    }
   }
 
   @override
@@ -87,9 +76,9 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      if (_version.isNotEmpty)
+                      if (appVersion.isNotEmpty)
                         Text(
-                          "v$_version",
+                          "v$appVersion",
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.cyanAccent,

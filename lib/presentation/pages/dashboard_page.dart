@@ -15,7 +15,7 @@ import 'package:gardaloto/core/service_locator.dart';
 import 'package:gardaloto/domain/repositories/loto_repository.dart';
 import 'package:gardaloto/presentation/pages/achievement_fuelman_detail_page.dart';
 import 'package:gardaloto/presentation/cubit/fuelman_detail_cubit.dart';
-import 'package:package_info_plus/package_info_plus.dart';
+import 'package:gardaloto/core/constants.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -38,21 +38,10 @@ class _DashboardView extends StatefulWidget {
 
 class _DashboardViewState extends State<_DashboardView> {
   final ScrollController _chartScrollController = ScrollController();
-  String _version = '';
 
   @override
   void initState() {
     super.initState();
-    _loadVersion();
-  }
-
-  Future<void> _loadVersion() async {
-    final info = await PackageInfo.fromPlatform();
-    if (mounted) {
-      setState(() {
-        _version = info.version;
-      });
-    }
   }
 
   @override
@@ -99,9 +88,9 @@ class _DashboardViewState extends State<_DashboardView> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              if (_version.isNotEmpty)
+              if (appVersion.isNotEmpty)
                 Text(
-                  'v$_version',
+                  'v$appVersion',
                   style: const TextStyle(color: Colors.white70, fontSize: 10),
                 ),
             ],

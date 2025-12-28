@@ -558,7 +558,14 @@ class LotoCubit extends Cubit<LotoState> {
     }
 
     // Emit uploading state
-    emit(LotoUploading(uploadedCount: 0, totalCount: records.length));
+    emit(
+      LotoUploading(
+        uploadedCount: 0,
+        totalCount: records.length,
+        session: session,
+        records: records,
+      ),
+    );
 
     try {
       final sendLotoReport = SendLotoReport(repo);
@@ -566,7 +573,14 @@ class LotoCubit extends Cubit<LotoState> {
         session,
         records,
         onProgress: (count, total) {
-          emit(LotoUploading(uploadedCount: count, totalCount: total));
+          emit(
+            LotoUploading(
+              uploadedCount: count,
+              totalCount: total,
+              session: session,
+              records: records,
+            ),
+          );
         },
       );
 
@@ -575,10 +589,18 @@ class LotoCubit extends Cubit<LotoState> {
         await clearSession();
         emit(LotoUploadSuccess(result.message));
       } else {
-        emit(LotoUploadError(result.message));
+        emit(
+          LotoUploadError(result.message, session: session, records: records),
+        );
       }
     } catch (e) {
-      emit(LotoUploadError('Upload failed: $e'));
+      emit(
+        LotoUploadError(
+          'Upload failed: $e',
+          session: session,
+          records: records,
+        ),
+      );
     } finally {
       // Reload local data to get back to normal state
       await loadLocalRecords();

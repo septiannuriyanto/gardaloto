@@ -57,3 +57,11 @@ All notable changes to this project will be documented in this file.
   - **Eliminates ghost Draft** : Introduced an isolated LOTO state in cubit to prevent the ghost draft appears in LOTO Draft after viewing the LOTO History page.
 
   - **Published Shorebird Release** : Release v1.2.1 demands the dev to release the newer apk, since it incorporates new features which involved new packages. So delivering update via patch is not possible. 
+
+  ## [1.3.0] - 2025-12-28
+
+  - **MAJOR IMAGE STORAGE MIGRATION**  : As of now I found out that Supabase meticulously measure our Egress usage, since our app is a image-heavy app, this won't bring us advantage in the long run. So we use cloudflare worker and R2 storage to store our images. It is far more advantageous than Supabase
+
+  - **Lottie Dialog Fixes**  : The fixes in  LotoCubit and LotoPage to handle the upload state, so the Lottie will be hidden when user uploads the report
+
+   - **Hardcoded App Version** : Since I'm prefer shorebird patches whenever possible, I would hardcode the app version string in constants to prevent repeated apk update to user.

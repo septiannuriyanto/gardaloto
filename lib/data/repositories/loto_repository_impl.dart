@@ -11,10 +11,16 @@ import 'package:gardaloto/domain/entities/loto_session.dart';
 import 'package:gardaloto/domain/repositories/loto_repository.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
+import 'package:gardaloto/core/r2_constants.dart';
+import 'package:gardaloto/data/datasources/loto_uploader.dart';
+import 'package:gardaloto/data/datasources/supabase_loto_uploader.dart';
+import 'package:gardaloto/data/datasources/worker_loto_uploader.dart';
+
 class LotoRepositoryImpl implements LotoRepository {
   static const _boxName = 'loto_records';
   late Box<LotoModel> _box;
   final SupabaseClient _supabaseClient;
+  late LotoUploader _uploader;
 
   LotoRepositoryImpl(this._supabaseClient);
 
@@ -29,6 +35,22 @@ class LotoRepositoryImpl implements LotoRepository {
     } catch (e) {
       await Hive.deleteBoxFromDisk(_boxName);
       _box = await Hive.openBox<LotoModel>(_boxName);
+    }
+
+    try {
+      _box = await Hive.openBox<LotoModel>(_boxName);
+    } catch (e) {
+      await Hive.deleteBoxFromDisk(_boxName);
+      _box = await Hive.openBox<LotoModel>(_boxName);
+    }
+
+    // Initialize Upload Strategy based on config
+    if (R2Constants.useWorker) {
+      _uploader = WorkerLotoUploader(_supabaseClient);
+      print('🚀 Initialized WorkerLotoUploader');
+    } else {
+      _uploader = SupabaseLotoUploader(_supabaseClient);
+      print('📦 Initialized SupabaseLotoUploader');
     }
   }
 
@@ -149,21 +171,21 @@ class LotoRepositoryImpl implements LotoRepository {
       // But I need to import the file.
 
       for (final record in records) {
-        // Use unit code as filename instead of timestamp
+        // Use relative path for Supabase fallback, or just pass it for consistency.
+        // Worker uploader reconstructs it from metadata anyway.
         final fileName = '${record.codeNumber}.jpg';
         final fileNameThumb = '${record.codeNumber}-thumbnail.jpg';
-
         final filePath = '$imagePathPrefix/$fileName';
         final filePathThumb = '$imagePathPrefix/$fileNameThumb';
 
         // 1. Upload Original Image
-        await _supabaseClient.storage
-            .from('loto_records')
-            .upload(
-              filePath,
-              File(record.photoPath),
-              fileOptions: const FileOptions(upsert: true),
-            );
+        final imageUrl = await _uploader.upload(
+          file: File(record.photoPath),
+          path: filePath,
+          session: session,
+          record: record,
+          isThumbnail: false,
+        );
 
         // 2. Generate and Upload Thumbnail
         // Generate a thumbnail with width ~300px
@@ -179,27 +201,23 @@ class LotoRepositoryImpl implements LotoRepository {
 
         if (thumbnailFile != null) {
           // Upload Thumbnail
-          await _supabaseClient.storage
-              .from('loto_records')
-              .upload(
-                filePathThumb,
-                File(thumbnailFile.path),
-                fileOptions: const FileOptions(upsert: true),
-              );
+          final thumbFileObj = File(thumbnailFile.path);
 
-          // Get Public URL for Thumbnail
-          thumbUrl = _supabaseClient.storage
-              .from('loto_records')
-              .getPublicUrl(filePathThumb);
+          try {
+            thumbUrl = await _uploader.upload(
+              file: thumbFileObj,
+              path: filePathThumb,
+              session: session,
+              record: record,
+              isThumbnail: true,
+            );
+          } catch (e) {
+            print('Thumbnail upload failed: $e');
+          }
 
           // Clean up temporary thumbnail file
-          await File(thumbnailFile.path).delete();
+          await thumbFileObj.delete();
         }
-
-        // Get the public URL for the uploaded original image
-        final imageUrl = _supabaseClient.storage
-            .from('loto_records')
-            .getPublicUrl(filePath);
 
         imageUrls.add({'original': imageUrl, 'thumbnail': thumbUrl});
 
@@ -366,24 +384,19 @@ class LotoRepositoryImpl implements LotoRepository {
       int uploadedCount = 0;
 
       for (final record in records) {
-        // Use unit code as filename instead of timestamp
+        // Construct path for Supabase fallback
         final fileName = '${record.codeNumber}.jpg';
         final filePath = '$imagePathPrefix/$fileName';
 
-        // Upload the image file to Supabase Storage with the proper path
-        // We use the already processed (resized & watermarked) image from local storage
-        await _supabaseClient.storage
-            .from('loto_records')
-            .upload(
-              filePath,
-              File(record.photoPath),
-              fileOptions: const FileOptions(upsert: true),
-            );
+        // Upload using Strategy
+        final imageUrl = await _uploader.upload(
+          file: File(record.photoPath),
+          path: filePath,
+          session: session,
+          record: record,
+          isThumbnail: false,
+        );
 
-        // Get the public URL for the uploaded image
-        final imageUrl = _supabaseClient.storage
-            .from('loto_records')
-            .getPublicUrl(filePath);
         imageUrls.add(imageUrl);
 
         uploadedCount++;

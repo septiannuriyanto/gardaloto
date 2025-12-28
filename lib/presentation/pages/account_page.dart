@@ -8,10 +8,10 @@ import 'package:gardaloto/presentation/cubit/auth_cubit.dart';
 import 'package:gardaloto/presentation/cubit/auth_state.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:gardaloto/core/service_locator.dart'; // For accessing dependencies if needed, but Cubit is enough
+import 'package:gardaloto/core/constants.dart';
 
 import 'package:palette_generator/palette_generator.dart';
 
@@ -25,7 +25,6 @@ class AccountPage extends StatefulWidget {
 class _AccountPageState extends State<AccountPage> {
   List<Color> _gradientColors = [];
   String? _currentBgUrl;
-  String _version = '';
 
   @override
   void initState() {
@@ -36,17 +35,6 @@ class _AccountPageState extends State<AccountPage> {
     final state = context.read<AuthCubit>().state;
     if (state is AuthAuthenticated) {
       _updatePalette(state.user.bgPhotoUrl);
-    }
-
-    _loadVersion();
-  }
-
-  Future<void> _loadVersion() async {
-    final info = await PackageInfo.fromPlatform();
-    if (mounted) {
-      setState(() {
-        _version = info.version;
-      });
     }
   }
 
@@ -593,9 +581,9 @@ class _AccountPageState extends State<AccountPage> {
                           ),
                           const SizedBox(height: 8),
                           const SizedBox(height: 8),
-                          if (_version.isNotEmpty)
+                          if (appVersion.isNotEmpty)
                             Text(
-                              "v$_version",
+                              "v$appVersion",
                               style: const TextStyle(
                                 color: Colors.white54,
                                 fontSize: 10,
