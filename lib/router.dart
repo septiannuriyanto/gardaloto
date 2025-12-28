@@ -22,6 +22,7 @@ import 'package:gardaloto/presentation/pages/control_panel_page.dart';
 import 'package:gardaloto/presentation/pages/user_management_page.dart';
 import 'package:gardaloto/presentation/pages/modify_user_page.dart';
 import 'package:gardaloto/domain/entities/user_entity.dart';
+import 'package:gardaloto/presentation/pages/about_page.dart';
 import 'package:go_router/go_router.dart';
 
 final router = GoRouter(
@@ -151,6 +152,11 @@ final router = GoRouter(
           },
         ),
       ],
+    ),
+    GoRoute(
+      path: '/about',
+      name: 'about',
+      builder: (_, __) => const AboutPage(),
     ),
   ],
 );

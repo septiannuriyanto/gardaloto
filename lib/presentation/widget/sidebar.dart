@@ -112,6 +112,21 @@ class Sidebar extends StatelessWidget {
                   },
                 ),
                 ListTile(
+                  leading: const Icon(Icons.info_outline, color: Colors.white),
+                  title: const Text(
+                    'About',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Future.delayed(const Duration(milliseconds: 250), () {
+                      if (context.mounted) {
+                        context.pushNamed('about');
+                      }
+                    });
+                  },
+                ),
+                ListTile(
                   leading: const Icon(Icons.logout, color: Colors.redAccent),
                   title: const Text(
                     'Logout',

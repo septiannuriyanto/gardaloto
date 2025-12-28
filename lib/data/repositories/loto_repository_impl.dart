@@ -158,7 +158,6 @@ class LotoRepositoryImpl implements LotoRepository {
   }
 
   @override
-  @override
   Future<void> sendReport(
     LotoSession session,
     List<LotoEntity> records, {
@@ -173,17 +172,39 @@ class LotoRepositoryImpl implements LotoRepository {
       final warehouse = session.warehouseCode;
       final imagePathPrefix = '$year/$month/$day/$shift/$warehouse';
 
+      // 0. Session Pre-Check (Efficiency Optimization)
+      // Check if the session already exists to decide if we need to check records.
+      // If session doesn't exist, it's a new upload -> Skip record check (save 1 API call).
+      final existingSession =
+          await _supabaseClient
+              .from('loto_sessions')
+              .select('session_code')
+              .eq('session_code', session.nomor)
+              .maybeSingle();
+
+      Map<String, Map<String, String?>> existingMap = {};
+
+      if (existingSession != null) {
+        // Session exists (Retry/Duplicate attempt).
+        // Fetch existing records to find what's already uploaded.
+        // We select 'code_number' as the unique identifier for records in this session.
+        final List<dynamic> existingRecordsData = await _supabaseClient
+            .from('loto_records')
+            .select('code_number, photo_path, thumbnail_url')
+            .eq('session_id', session.nomor);
+
+        existingMap = {
+          for (var r in existingRecordsData)
+            r['code_number'] as String: {
+              'original': r['photo_path'] as String,
+              'thumbnail': r['thumbnail_url'] as String?,
+            },
+        };
+      }
+
       // First, upload all images to Supabase Storage
       final imageUrls = <Map<String, String?>>[];
       int uploadedCount = 0;
-
-      // Import image_utils for compression
-      // Note: Since I cannot easily add imports here without messing up the file structure if I use replace_file_content on a small chunk,
-      // I will assume image_utils is available or I need to add the import.
-      // Wait, I need to add the import first. I'll do that in a separate step or assume it's fine if I use the fully qualified name or just add the import now.
-      // Actually, I should have added the import. Let me check imports.
-      // I'll add the import in a separate tool call or just use the function if it's global (it is global in image_utils.dart).
-      // But I need to import the file.
 
       for (final record in records) {
         // Use relative path for Supabase fallback, or just pass it for consistency.
@@ -193,45 +214,55 @@ class LotoRepositoryImpl implements LotoRepository {
         final filePath = '$imagePathPrefix/$fileName';
         final filePathThumb = '$imagePathPrefix/$fileNameThumb';
 
-        // 1. Upload Original Image
-        final imageUrl = await _uploader.upload(
-          file: File(record.photoPath),
-          path: filePath,
-          session: session,
-          record: record,
-          isThumbnail: false,
-        );
-
-        // 2. Generate and Upload Thumbnail
-        // Generate a thumbnail with width ~300px
-        final thumbnailFile = await FlutterImageCompress.compressAndGetFile(
-          record.photoPath,
-          record.photoPath.replaceAll('.jpg', '_thumb.jpg'),
-          minWidth: 150,
-          minHeight: 150,
-          quality: 50, // Target ~10KB size
-        );
-
+        String imageUrl;
         String? thumbUrl;
 
-        if (thumbnailFile != null) {
-          // Upload Thumbnail
-          final thumbFileObj = File(thumbnailFile.path);
+        // Check if we already have this record's images in DB (only if session existed)
+        // We only skip if 'original' path is present.
+        if (existingMap.containsKey(record.codeNumber) &&
+            existingMap[record.codeNumber]!['original'] != null) {
+          imageUrl = existingMap[record.codeNumber]!['original']!;
+          thumbUrl = existingMap[record.codeNumber]!['thumbnail'];
+          print('⏩ DB Check: Skipped uploaded file for ${record.codeNumber}');
+        } else {
+          // 1. Upload Original Image
+          imageUrl = await _uploader.upload(
+            file: File(record.photoPath),
+            path: filePath,
+            session: session,
+            record: record,
+            isThumbnail: false,
+          );
 
-          try {
-            thumbUrl = await _uploader.upload(
-              file: thumbFileObj,
-              path: filePathThumb,
-              session: session,
-              record: record,
-              isThumbnail: true,
-            );
-          } catch (e) {
-            print('Thumbnail upload failed: $e');
+          // 2. Generate and Upload Thumbnail
+          // Generate a thumbnail with width ~300px
+          final thumbnailFile = await FlutterImageCompress.compressAndGetFile(
+            record.photoPath,
+            record.photoPath.replaceAll('.jpg', '_thumb.jpg'),
+            minWidth: 150,
+            minHeight: 150,
+            quality: 50, // Target ~10KB size
+          );
+
+          if (thumbnailFile != null) {
+            // Upload Thumbnail
+            final thumbFileObj = File(thumbnailFile.path);
+
+            try {
+              thumbUrl = await _uploader.upload(
+                file: thumbFileObj,
+                path: filePathThumb,
+                session: session,
+                record: record,
+                isThumbnail: true,
+              );
+            } catch (e) {
+              print('Thumbnail upload failed: $e');
+            }
+
+            // Clean up temporary thumbnail file
+            await thumbFileObj.delete();
           }
-
-          // Clean up temporary thumbnail file
-          await thumbFileObj.delete();
         }
 
         imageUrls.add({'original': imageUrl, 'thumbnail': thumbUrl});
@@ -240,10 +271,22 @@ class LotoRepositoryImpl implements LotoRepository {
         onProgress?.call(uploadedCount, records.length);
       }
 
-      // Then, insert the session into the database
-      await _supabaseClient.from('loto_sessions').insert(session.toJson());
+      // Then, UPSERT the session into the database to handle duplicates
+      // onConflict is usually the unique constraint column(s)
+      await _supabaseClient
+          .from('loto_sessions')
+          .upsert(session.toJson(), onConflict: 'session_code');
 
-      // Finally, insert the records into the database
+      // Finally, handle records. To avoid duplicates and ensure synchronization:
+      // 1. Delete all existing records for this session
+      // 2. Insert the current list of records
+
+      // Note: We use 'session_id' which maps to 'session_code' in the entities/tables relation
+      await _supabaseClient
+          .from('loto_records')
+          .delete()
+          .eq('session_id', session.nomor);
+
       final recordData =
           records
               .asMap()
@@ -258,6 +301,7 @@ class LotoRepositoryImpl implements LotoRepository {
                 },
               )
               .toList();
+
       await _supabaseClient.from('loto_records').insert(recordData);
 
       // Clean up local files after successful upload and DB insert
