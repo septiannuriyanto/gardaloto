@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.2] - 2025-12-29
+
+### Fixed
+- **Timezone Enforcement**: Enforced `Asia/Makassar` (UTC+8) for all time-related operations (Dashboard Refresh, Session Creation, File Timestamps) to ensure consistency regardless of device timezone.
+- **Session Logic**: Fixed Shift 2 session date calculation logic for sessions created between 00:00 - 06:00 WITA.
+
 ## [1.3.1] - 2025-12-29
 
 ### Added

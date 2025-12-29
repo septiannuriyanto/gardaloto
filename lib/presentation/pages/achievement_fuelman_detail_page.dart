@@ -7,6 +7,7 @@ import 'package:gardaloto/domain/entities/loto_session.dart';
 import 'package:gardaloto/domain/repositories/loto_repository.dart';
 import 'package:gardaloto/presentation/cubit/fuelman_detail_cubit.dart';
 import 'package:gardaloto/presentation/cubit/fuelman_detail_state.dart';
+import 'package:gardaloto/core/time_helper.dart';
 import 'package:gardaloto/presentation/cubit/loto_cubit.dart';
 import 'package:gardaloto/presentation/widget/capture_form_page.dart';
 import 'package:image_picker/image_picker.dart';
@@ -190,7 +191,7 @@ class _AchievementFuelmanDetailPageState
       listener: (context, state) {
         if (!state.isLoading && state.dailyAchievement.isNotEmpty) {
           // Find the index of the latest data point
-          final now = DateTime.now();
+          final now = TimeHelper.now();
           final startOfMonth = DateTime(now.year, now.month, 1);
 
           DateTime? maxDate;
@@ -219,7 +220,7 @@ class _AchievementFuelmanDetailPageState
         }
 
         // Generate Dates for Current Month (1st to End)
-        final now = DateTime.now();
+        final now = TimeHelper.now();
         // Use 1st day of current month
         final startOfMonth = DateTime(now.year, now.month, 1);
         // Use last day of current month
@@ -1122,7 +1123,7 @@ class _AchievementFuelmanDetailPageState
                 cubit.setSession(
                   LotoSession(
                     nomor: sessionCode ?? 'UNKNOWN',
-                    dateTime: DateTime.now(),
+                    dateTime: TimeHelper.now(),
                     shift: 1,
                     warehouseCode: 'UNKNOWN',
                     fuelman: 'UNKNOWN',

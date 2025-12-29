@@ -10,6 +10,7 @@ import 'package:gardaloto/presentation/cubit/manpower_cubit.dart';
 import 'package:gardaloto/presentation/cubit/storage_cubit.dart';
 
 import 'package:gardaloto/presentation/widget/glass_panel.dart';
+import 'package:gardaloto/core/time_helper.dart';
 
 /// Dialog shown when the list is empty to collect session/header info.
 class EmptyListSessionDialog extends StatefulWidget {
@@ -42,10 +43,7 @@ class _EmptyListSessionDialogState extends State<EmptyListSessionDialog> {
   void initState() {
     super.initState();
     // initialize to current time in GMT+8 for display
-    final nowUtc = DateTime.now().toUtc();
-    _dateTime = nowUtc.add(
-      const Duration(hours: 8),
-    ); // Keep as UTC+8 but represented as DateTime
+    _dateTime = TimeHelper.now(); // Keep as UTC+8 but represented as DateTime
 
     if (widget.initialMaster != null) {
       _fuelman = widget.initialMaster!.fuelman;
@@ -478,8 +476,17 @@ class _EmptyListSessionDialogState extends State<EmptyListSessionDialog> {
                           if (form == null || !form.validate()) return;
                           form.save();
 
+                          // Calculate Production Date (logical date)
+                          // If current time is before 06:00, it belongs to the previous day's Shift 2.
+                          DateTime productionDate = _dateTime;
+                          if (_dateTime.hour < 6) {
+                            productionDate = _dateTime.subtract(
+                              const Duration(days: 1),
+                            );
+                          }
+
                           final nomor = _generateNomor(
-                            _dateTime,
+                            productionDate,
                             currentShift,
                             _warehouse,
                           );

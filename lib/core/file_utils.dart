@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:gardaloto/core/time_helper.dart';
 
 /// Saves an image from a temporary source path to the application's persistent documents directory.
 /// Returns the new persistent path.
@@ -22,7 +23,7 @@ Future<String> saveImageToPersistentStorage(String sourcePath) async {
     // Use a timestamp to ensure uniqueness if needed, but basename from picker is usually unique enough for temp.
     // However, if we pick the same file twice, we might overwrite.
     // Let's prepend timestamp to be safe and avoid collisions.
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final timestamp = TimeHelper.now().millisecondsSinceEpoch;
     final newFileName = '${timestamp}_$fileName';
     final newPath = p.join(imagesDir.path, newFileName);
 

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gardaloto/domain/repositories/loto_repository.dart';
 import 'package:gardaloto/presentation/cubit/dashboard_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:gardaloto/core/time_helper.dart';
 
 class DashboardCubit extends Cubit<DashboardState> {
   final LotoRepository lotoRepo;
@@ -222,47 +223,15 @@ class DashboardCubit extends Cubit<DashboardState> {
     if (lastLoadMillis == null) return true;
 
     final lastLoad = DateTime.fromMillisecondsSinceEpoch(lastLoadMillis);
-    // Ensure we compare in Local Time (GMT+8 assumption by user, using .now() is device time)
-    // If user device is set to Jakarta (GMT+7) but wants GMT+8 rules?
-    // "gunakan lastLotoDataLoaded agar rpc diload setiap jam 6 dan jam 18:00 wita"
-    // WITA is GMT+8.
+
     // We will assume device time is WITA or we adjust.
     // Safer: Use UTC for logic. 06:00 WITA = 22:00 UTC (prev day). 18:00 WITA = 10:00 UTC.
 
-    final nowUtc = DateTime.now().toUtc();
-    final lastUtc = lastLoad.toUtc();
+    final nowWita = TimeHelper.now();
 
     // Determine the most recent "Checkpoint" (22:00 or 10:00 UTC)
-    // Checkpoints today:
-    final checkpoint1 = DateTime.utc(
-      nowUtc.year,
-      nowUtc.month,
-      nowUtc.day,
-      10,
-      0,
-    ); // 18:00 WITA
-    final checkpoint2 = DateTime.utc(
-      nowUtc.year,
-      nowUtc.month,
-      nowUtc.day,
-      22,
-      0,
-    ); // 06:00 WITA (Next day really)
-    // Checkpoints yesterday:
-    final checkpoint1_prev = checkpoint1.subtract(const Duration(days: 1));
-    final checkpoint2_prev = DateTime.utc(
-      nowUtc.year,
-      nowUtc.month,
-      nowUtc.day - 1,
-      22,
-      0,
-    ); // Yesterday 06:00 WITA? No.
+    final lastUtc = lastLoad.toUtc();
 
-    // Let's simplify:
-    // We have two daily sync times: 06:00 and 18:00 (Local/WITA).
-    // If `lastLoad` was BEFORE the most recent sync time, and NOW is AFTER it, we refresh.
-    // We need to convert to WITA (UTC+8).
-    final nowWita = nowUtc.add(const Duration(hours: 8));
     final lastWita = lastUtc.add(const Duration(hours: 8));
 
     // Construct today's checkpoints in WITA

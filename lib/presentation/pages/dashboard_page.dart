@@ -8,6 +8,7 @@ import 'package:gardaloto/presentation/cubit/auth_cubit.dart';
 import 'package:gardaloto/presentation/cubit/auth_state.dart';
 import 'package:gardaloto/presentation/cubit/dashboard_cubit.dart';
 import 'package:gardaloto/presentation/cubit/dashboard_state.dart';
+import 'package:gardaloto/core/time_helper.dart';
 import 'package:gardaloto/presentation/widget/sidebar.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
@@ -859,8 +860,7 @@ class _DashboardViewState extends State<_DashboardView> {
       final year = 2000 + yy;
       final date = DateTime(year, mm, dd);
 
-      final nowUtc = DateTime.now().toUtc();
-      final nowWita = nowUtc.add(const Duration(hours: 8));
+      final nowWita = TimeHelper.now();
 
       int getShiftIndex(DateTime d, int s) {
         final dayStart = DateTime(d.year, d.month, d.day);

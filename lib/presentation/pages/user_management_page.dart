@@ -5,8 +5,8 @@ import 'package:gardaloto/domain/entities/user_entity.dart';
 import 'package:gardaloto/presentation/cubit/manpower_cubit.dart';
 import 'package:gardaloto/presentation/widget/app_background.dart';
 import 'package:gardaloto/presentation/widget/glass_panel.dart';
+import 'package:gardaloto/core/time_helper.dart';
 import 'package:go_router/go_router.dart';
-
 
 class UserManagementPage extends StatelessWidget {
   const UserManagementPage({super.key});
@@ -141,7 +141,9 @@ class UserManagementView extends StatelessWidget {
                       labelText: "NRP",
                       labelStyle: const TextStyle(color: Colors.white70),
                       hintText: "Enter NRP to allow registration",
-                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+                      hintStyle: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.3),
+                      ),
                       enabledBorder: OutlineInputBorder(
                         borderSide: BorderSide(
                           color: Colors.white.withValues(alpha: 0.3),
@@ -197,7 +199,7 @@ class UserManagementView extends StatelessWidget {
   Widget _buildUserCard(BuildContext context, UserEntity user) {
     bool isNew = false;
     if (user.active == false && user.updatedAt != null) {
-      final diff = DateTime.now().difference(user.updatedAt!);
+      final diff = TimeHelper.now().difference(user.updatedAt!);
       if (diff.inDays <= 30) {
         isNew = true;
       }
@@ -206,158 +208,158 @@ class UserManagementView extends StatelessWidget {
 
     return GlassPanel(
       onTap: () {
-        context.push('/user-management/modify-user', extra: {
-          'user': user,
-          'cubit': context.read<ManpowerCubit>(),
-        });
+        context.push(
+          '/user-management/modify-user',
+          extra: {'user': user, 'cubit': context.read<ManpowerCubit>()},
+        );
       },
       padding: const EdgeInsets.all(16),
-      border: user.active == false ? Border.all(color: Colors.amber, width: 2) : null,
+      border:
+          user.active == false
+              ? Border.all(color: Colors.amber, width: 2)
+              : null,
       child: Row(
         children: [
           CircleAvatar(
             backgroundColor: Colors.white24,
-            backgroundImage: user.photoUrl != null && user.photoUrl!.isNotEmpty
-                ? NetworkImage(user.photoUrl!)
-                : null,
-            child: (user.photoUrl == null || user.photoUrl!.isEmpty)
-                ? const Icon(Icons.person, color: Colors.white)
-                : null,
+            backgroundImage:
+                user.photoUrl != null && user.photoUrl!.isNotEmpty
+                    ? NetworkImage(user.photoUrl!)
+                    : null,
+            child:
+                (user.photoUrl == null || user.photoUrl!.isEmpty)
+                    ? const Icon(Icons.person, color: Colors.white)
+                    : null,
           ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        user.nama ?? 'No Name',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      user.nama ?? 'No Name',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (isNew) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          "NEW",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                      if (isNew) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text(
-                            "NEW",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
+                  ],
+                ),
+                Text(
+                  user.nrp ?? 'No NRP',
+                  style: TextStyle(
+                    color: Colors.cyanAccent.shade100,
+                    fontSize: 12,
                   ),
-                  Text(
-                    user.nrp ?? 'No NRP',
-                    style: TextStyle(
-                      color: Colors.cyanAccent.shade100,
-                      fontSize: 12,
+                ),
+                Text(
+                  user.positionDescription ?? 'Unknown Position',
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white70),
+            onSelected: (value) {
+              if (value == 'modify') {
+                context.push(
+                  '/user-management/modify-user',
+                  extra: {'user': user, 'cubit': context.read<ManpowerCubit>()},
+                );
+              } else if (value == 'deactivate') {
+                _confirmAction(
+                  context: context,
+                  title: "Deactivate User",
+                  content: "Are you sure you want to deactivate ${user.nama}?",
+                  onConfirm:
+                      () => context.read<ManpowerCubit>().toggleUserStatus(
+                        user.nrp!,
+                        false,
+                      ),
+                );
+              } else if (value == 'activate') {
+                context.read<ManpowerCubit>().toggleUserStatus(user.nrp!, true);
+              } else if (value == 'unregister') {
+                _confirmAction(
+                  context: context,
+                  title: "Unregister User",
+                  content:
+                      "This will remove ${user.nama} from the registered list. Continue?",
+                  onConfirm:
+                      () => context.read<ManpowerCubit>().unregisterUser(
+                        user.nrp!,
+                      ),
+                );
+              } else if (value == 'delete') {
+                _confirmAction(
+                  context: context,
+                  title: "Delete User",
+                  content:
+                      "This is IRREVERSIBLE. Are you sure you want to delete ${user.nama}?",
+                  onConfirm:
+                      () => context.read<ManpowerCubit>().deleteUser(user.nrp!),
+                );
+              }
+            },
+            itemBuilder:
+                (context) => [
+                  const PopupMenuItem(
+                    value: 'modify',
+                    child: Text("Modify User"),
+                  ),
+                  if (user.active == true)
+                    const PopupMenuItem(
+                      value: 'deactivate',
+                      child: Text("Deactivate"),
+                    ),
+
+                  // Activate is handled by Modify Page, but kept logic here just in case or we removed it?
+                  // User said "remove activate button" from row.
+                  // So I won't show 'activate' here.
+                  const PopupMenuItem(
+                    value: 'unregister',
+                    child: Text(
+                      "Unregister",
+                      style: TextStyle(color: Colors.orange),
                     ),
                   ),
-                  Text(
-                    user.positionDescription ?? 'Unknown Position',
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Text(
+                      "Delete User",
+                      style: TextStyle(color: Colors.red),
+                    ),
                   ),
                 ],
-              ),
-            ),
-
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Colors.white70),
-              onSelected: (value) {
-                if (value == 'modify') {
-                  context.push('/user-management/modify-user', extra: {
-                    'user': user,
-                    'cubit': context.read<ManpowerCubit>(),
-                  });
-                } else if (value == 'deactivate') {
-                  _confirmAction(
-                    context: context,
-                    title: "Deactivate User",
-                    content:
-                        "Are you sure you want to deactivate ${user.nama}?",
-                    onConfirm:
-                        () => context.read<ManpowerCubit>().toggleUserStatus(
-                          user.nrp!,
-                          false,
-                        ),
-                  );
-                } else if (value == 'activate') {
-                  context.read<ManpowerCubit>().toggleUserStatus(
-                    user.nrp!,
-                    true,
-                  );
-                } else if (value == 'unregister') {
-                  _confirmAction(
-                    context: context,
-                    title: "Unregister User",
-                    content:
-                        "This will remove ${user.nama} from the registered list. Continue?",
-                    onConfirm:
-                        () => context.read<ManpowerCubit>().unregisterUser(
-                          user.nrp!,
-                        ),
-                  );
-                } else if (value == 'delete') {
-                  _confirmAction(
-                    context: context,
-                    title: "Delete User",
-                    content:
-                        "This is IRREVERSIBLE. Are you sure you want to delete ${user.nama}?",
-                    onConfirm:
-                        () =>
-                            context.read<ManpowerCubit>().deleteUser(user.nrp!),
-                  );
-                }
-              },
-              itemBuilder:
-                  (context) => [
-                    const PopupMenuItem(
-                      value: 'modify',
-                      child: Text("Modify User"),
-                    ),
-                    if (user.active == true)
-                      const PopupMenuItem(
-                        value: 'deactivate',
-                        child: Text("Deactivate"),
-                      ),
-
-                    // Activate is handled by Modify Page, but kept logic here just in case or we removed it?
-                    // User said "remove activate button" from row.
-                    // So I won't show 'activate' here.
-                    const PopupMenuItem(
-                      value: 'unregister',
-                      child: Text(
-                        "Unregister",
-                        style: TextStyle(color: Colors.orange),
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Text(
-                        "Delete User",
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  ],
-            ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
   }
 
   void _confirmAction({

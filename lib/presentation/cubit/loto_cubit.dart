@@ -8,6 +8,7 @@ import 'package:gardaloto/presentation/cubit/loto_state.dart';
 import 'package:gardaloto/domain/entities/loto_session.dart';
 import 'package:gardaloto/domain/usecases/send_loto_report.dart';
 import 'package:gardaloto/core/image_utils.dart';
+import 'package:gardaloto/core/time_helper.dart';
 
 class LotoCubit extends Cubit<LotoState> {
   final LotoRepository repo;
@@ -199,7 +200,7 @@ class LotoCubit extends Cubit<LotoState> {
       photoPath: photoPath,
       lat: lat,
       lng: lng,
-      timestamp: DateTime.now(),
+      timestamp: TimeHelper.now(),
       session: currentSession,
       records: currentRecords,
       isLocationLoading: lat == 0 && lng == 0, // Assume loading if 0,0

@@ -7,6 +7,7 @@ import 'package:gardaloto/presentation/cubit/manpower_cubit.dart';
 import 'package:gardaloto/domain/entities/storage_entity.dart';
 import 'package:gardaloto/core/service_locator.dart';
 import 'package:gardaloto/presentation/widget/sidebar.dart';
+import 'package:gardaloto/core/time_helper.dart';
 import 'dart:ui';
 import 'package:gardaloto/presentation/widget/app_background.dart';
 import 'package:gardaloto/presentation/widget/glass_panel.dart';
@@ -73,7 +74,7 @@ class _LotoSessionsViewState extends State<_LotoSessionsView> {
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
+      initialDate: _selectedDate ?? TimeHelper.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );

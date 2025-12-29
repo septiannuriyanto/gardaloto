@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gardaloto/core/time_helper.dart';
 import 'package:gardaloto/domain/entities/incumbent_entity.dart';
 import 'package:gardaloto/domain/entities/user_entity.dart';
 import 'package:gardaloto/presentation/cubit/manpower_cubit.dart';
@@ -22,7 +23,7 @@ class _ModifyUserPageState extends State<ModifyUserPage> {
   late TextEditingController _emailCtrl;
   late TextEditingController _sidCtrl;
   late TextEditingController _sectionCtrl;
-  
+
   int? _selectedPosition;
   List<IncumbentEntity> _incumbents = [];
   bool _isLoadingIncumbents = true;
@@ -36,7 +37,7 @@ class _ModifyUserPageState extends State<ModifyUserPage> {
     _sidCtrl = TextEditingController(text: widget.user.sidCode);
     _sectionCtrl = TextEditingController(text: widget.user.section);
     _selectedPosition = widget.user.position;
-    
+
     _loadIncumbents();
   }
 
@@ -50,7 +51,9 @@ class _ModifyUserPageState extends State<ModifyUserPage> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingIncumbents = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading positions: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading positions: $e')));
       }
     }
   }
@@ -73,12 +76,15 @@ class _ModifyUserPageState extends State<ModifyUserPage> {
 
     // Verification
     if (name.isEmpty || email.isEmpty) {
-       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Name and Email are required')));
-       return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Name and Email are required')),
+      );
+      return;
     }
 
     final bool isInactive = widget.user.active == false;
-    final bool activateUser = isInactive; // If inactive, button implies activation
+    final bool activateUser =
+        isInactive; // If inactive, button implies activation
 
     // Create updated user
     // We create a new UserEntity with updated fields
@@ -91,17 +97,17 @@ class _ModifyUserPageState extends State<ModifyUserPage> {
       sidCode: sidCode.isEmpty ? null : sidCode,
       section: section.isEmpty ? null : section,
       position: _selectedPosition,
-      active: activateUser ? true : widget.user.active, 
+      active: activateUser ? true : widget.user.active,
       registered: widget.user.registered,
-      updatedAt: DateTime.now(), // Optimistic update
+      updatedAt: TimeHelper.now(), // Optimistic update
       // Preserve others
       photoUrl: widget.user.photoUrl,
       bgPhotoUrl: widget.user.bgPhotoUrl,
-      positionDescription: widget.user.positionDescription, 
+      positionDescription: widget.user.positionDescription,
     );
 
     context.read<ManpowerCubit>().updateUser(updatedUser).then((_) {
-       if (mounted) context.pop(); // Return to list
+      if (mounted) context.pop(); // Return to list
     });
   }
 
@@ -124,62 +130,96 @@ class _ModifyUserPageState extends State<ModifyUserPage> {
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-               const SizedBox(height: 60),
-               GlassPanel(
-                 padding: const EdgeInsets.all(24),
-                 child: Column(
-                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                   children: [
-                      _buildTextField("NRP", _nrpCtrl, enabled: false), // Cannot edit NRP usually
-                      const SizedBox(height: 16),
-                      _buildTextField("Name", _nameCtrl, textCapitalization: TextCapitalization.characters),
-                      const SizedBox(height: 16),
-                      _buildTextField("Email", _emailCtrl, textCapitalization: TextCapitalization.none),
-                      const SizedBox(height: 16),
-                      _buildTextField("SID Code", _sidCtrl, textCapitalization: TextCapitalization.characters),
-                      const SizedBox(height: 16),
-                      
-                      // Position Dropdown
-                      if (_isLoadingIncumbents)
-                        const Center(child: CircularProgressIndicator())
-                      else
-                        DropdownButtonFormField<int>(
-                          value: _selectedPosition,
-                          dropdownColor: Colors.grey[900],
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            labelText: "Position",
-                            labelStyle: const TextStyle(color: Colors.white70),
-                            filled: true,
-                            fillColor: Colors.white.withValues(alpha: 0.05),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          items: _incumbents.map((e) {
-                            return DropdownMenuItem<int>(
-                              value: e.id,
-                              child: Text('${e.incumbent} (ID: ${e.id})'), // Show ID for clarity? Or just name
-                            );
-                          }).toList(),
-                          onChanged: (val) => setState(() => _selectedPosition = val),
-                        ),
-                      
-                      const SizedBox(height: 16),
-                      _buildTextField("Section", _sectionCtrl, textCapitalization: TextCapitalization.characters),
-                      const SizedBox(height: 32),
+              const SizedBox(height: 60),
+              GlassPanel(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildTextField(
+                      "NRP",
+                      _nrpCtrl,
+                      enabled: false,
+                    ), // Cannot edit NRP usually
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      "Name",
+                      _nameCtrl,
+                      textCapitalization: TextCapitalization.characters,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      "Email",
+                      _emailCtrl,
+                      textCapitalization: TextCapitalization.none,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      "SID Code",
+                      _sidCtrl,
+                      textCapitalization: TextCapitalization.characters,
+                    ),
+                    const SizedBox(height: 16),
 
-                      ElevatedButton(
-                        onPressed: _onSubmit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: buttonColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    // Position Dropdown
+                    if (_isLoadingIncumbents)
+                      const Center(child: CircularProgressIndicator())
+                    else
+                      DropdownButtonFormField<int>(
+                        value: _selectedPosition,
+                        dropdownColor: Colors.grey[900],
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: "Position",
+                          labelStyle: const TextStyle(color: Colors.white70),
+                          filled: true,
+                          fillColor: Colors.white.withValues(alpha: 0.05),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        child: Text(buttonText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        items:
+                            _incumbents.map((e) {
+                              return DropdownMenuItem<int>(
+                                value: e.id,
+                                child: Text(
+                                  '${e.incumbent} (ID: ${e.id})',
+                                ), // Show ID for clarity? Or just name
+                              );
+                            }).toList(),
+                        onChanged:
+                            (val) => setState(() => _selectedPosition = val),
                       ),
-                   ],
-                 ),
-               )
+
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      "Section",
+                      _sectionCtrl,
+                      textCapitalization: TextCapitalization.characters,
+                    ),
+                    const SizedBox(height: 32),
+
+                    ElevatedButton(
+                      onPressed: _onSubmit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: buttonColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        buttonText,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -187,7 +227,12 @@ class _ModifyUserPageState extends State<ModifyUserPage> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController ctrl, {bool enabled = true, TextCapitalization textCapitalization = TextCapitalization.none}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController ctrl, {
+    bool enabled = true,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+  }) {
     return TextField(
       controller: ctrl,
       enabled: enabled,
@@ -209,7 +254,10 @@ class _ModifyUserPageState extends State<ModifyUserPage> {
           borderRadius: BorderRadius.circular(12),
         ),
         filled: true,
-        fillColor: enabled ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.2),
+        fillColor:
+            enabled
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.2),
       ),
     );
   }
