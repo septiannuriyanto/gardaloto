@@ -96,4 +96,21 @@ class FuelmanDetailCubit extends Cubit<FuelmanDetailState> {
       );
     }
   }
+
+  Future<void> loadMonthlyRecords() async {
+    emit(state.copyWith(isMonthlyRecordsLoading: true));
+    try {
+      final records = await lotoRepo.getFuelmanMonthlyRecords(nrp);
+      emit(
+        state.copyWith(isMonthlyRecordsLoading: false, monthlyRecords: records),
+      );
+    } catch (e) {
+      emit(
+        state.copyWith(
+          isMonthlyRecordsLoading: false,
+          errorMessage: 'Failed to load records: $e',
+        ),
+      );
+    }
+  }
 }

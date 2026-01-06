@@ -9,6 +9,7 @@ import 'package:gardaloto/domain/entities/loto_session.dart';
 import 'package:gardaloto/domain/usecases/send_loto_report.dart';
 import 'package:gardaloto/core/image_utils.dart';
 import 'package:gardaloto/core/time_helper.dart';
+import 'package:gardaloto/core/constants.dart';
 
 class LotoCubit extends Cubit<LotoState> {
   final LotoRepository repo;
@@ -371,6 +372,7 @@ class LotoCubit extends Cubit<LotoState> {
         latitude: rawEntity.latitude,
         longitude: rawEntity.longitude,
         sessionId: rawEntity.sessionId,
+        appVersion: rawEntity.appVersion ?? appVersion,
       );
 
       // We can use saveLocal again, it should overwrite based on timestamp/primary key?

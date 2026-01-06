@@ -1,6 +1,15 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [1.4.3] - 2026-01-07
+
+### Fixed
+- **CRITICAL / Upload Stability**: Solved "Connection Abort" errors by compressing images (Max 1024px, 80% Quality) and increasing upload timeout to 60s.
+- **CRITICAL / Data Integrity**: Fixed schema mismatch where `app_version` was incorrectly sent to `loto_records`.
+- **CRITICAL / Crash Fix**: Resolved `type 'int' is not a subtype of type 'String'` crash in session parsing.
+- **Date Logic**: Smart date display in Session Dialog (shows "Yesterday" for Shift 2 < 06:00) while preserving correct Session Code generation.
+- **UI Cleaning**: Hidden time display in Draft Page; refined Version Banner on Dashboard.
+
 
 ## [1.3.2] - 2025-12-29
 

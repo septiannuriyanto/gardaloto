@@ -16,7 +16,10 @@ import 'package:gardaloto/core/service_locator.dart';
 import 'package:gardaloto/domain/repositories/loto_repository.dart';
 import 'package:gardaloto/presentation/pages/achievement_fuelman_detail_page.dart';
 import 'package:gardaloto/presentation/cubit/fuelman_detail_cubit.dart';
+import 'package:gardaloto/presentation/cubit/version_cubit.dart';
+import 'package:gardaloto/presentation/cubit/version_state.dart';
 import 'package:gardaloto/core/constants.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -74,64 +77,148 @@ class _DashboardViewState extends State<_DashboardView> {
           _scrollToEnd();
         }
       },
-      child: Scaffold(
-        extendBodyBehindAppBar: true, // Allow gradient to go behind AppBar
-        drawer: const Sidebar(),
-        appBar: AppBar(
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Dashboard',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18, // Reduced from default
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              if (appVersion.isNotEmpty)
-                Text(
-                  'v$appVersion',
-                  style: const TextStyle(color: Colors.white70, fontSize: 10),
-                ),
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0F2027), // Deep Dark Blue/Black
+              Color(0xFF203A43), // Muted Teal/Grey-Blue
+              Color(0xFF2C5364), // Softer Blue-Grey
             ],
           ),
-          backgroundColor: Colors.transparent, // Glass AppBar
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Colors.white),
-          flexibleSpace: ClipRRect(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(color: Colors.blue.shade900.withOpacity(0.2)),
-            ),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.white),
-              onPressed:
-                  () => context.read<DashboardCubit>().loadData(force: true),
-            ),
-          ],
         ),
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF0F2027), // Deep Dark Blue/Black
-                Color(0xFF203A43), // Muted Teal/Grey-Blue
-                Color(0xFF2C5364), // Softer Blue-Grey
+        child: Scaffold(
+          backgroundColor: Colors.transparent, // Transparent for gradient
+          extendBodyBehindAppBar: true,
+          drawer: const Sidebar(),
+          appBar: AppBar(
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Dashboard',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (appVersion.isNotEmpty)
+                  Text(
+                    'v$appVersion',
+                    style: const TextStyle(color: Colors.white70, fontSize: 10),
+                  ),
               ],
             ),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.white),
+            flexibleSpace: ClipRRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(color: Colors.blue.shade900.withOpacity(0.2)),
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.white),
+                onPressed: () {
+                  context.read<DashboardCubit>().loadData(force: true);
+                  context.read<VersionCubit>().checkVersion();
+                },
+              ),
+            ],
           ),
-          child: SafeArea(
-            // Rest of the tree remains the same
+          body: SafeArea(
+            top:
+                false, // Don't add top padding here, usage of extendBodyBehindAppBar will handle it or AppBar
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              padding: EdgeInsets.only(
+                // Add top padding to account for AppBar since we are inside SafeArea(top:false)
+                // but Scaffold usually handles body behind appBar.
+                // Actually, if we use extendBodyBehindAppBar, the body starts at top:0.
+                // We need to add padding for the AppBar height manually or use a structure that respects it.
+                // The previous code used SafeArea child SingleChildScrollView.
+                // If I enable SafeArea, it respects the system status bar, but now we might be below a Banner.
+                // If Banner exists, the Scaffold is shifted down.
+                // Status bar is handled by Banner padding.
+                // So Scaffold considers "top" as 0 (below banner).
+                // SafeArea inside Scaffold will see top padding as 0?
+                // Actually MediaQuery padding top is preserved in standard widgets unless consumed.
+                // But since we built a custom layout, we might need adjustments.
+                // But let's stick to simple SafeArea for now.
+                top: kToolbarHeight + MediaQuery.of(context).padding.top + 24,
+                left: 16,
+                right: 16,
+                bottom: 16,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Version Banner
+                  BlocBuilder<VersionCubit, VersionState>(
+                    builder: (context, state) {
+                      if (state is VersionOutdated) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 24.0),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              width: double.infinity,
+                              color: Colors.greenAccent, // Bright Green
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.system_update,
+                                    color: Colors.black87,
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'Update available! (v${state.latestVersion})',
+                                      style: const TextStyle(
+                                        color: Colors.black87,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                  if (state.storeUrl != null)
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        launchUrl(
+                                          Uri.parse(state.storeUrl!),
+                                          mode: LaunchMode.externalApplication,
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.black87,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                        ),
+                                        minimumSize: const Size(0, 32),
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: const Text('Update'),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
                   _buildHeader(context),
                   const SizedBox(height: 24),
                   _buildSelectors(context),
@@ -460,7 +547,7 @@ class _DashboardViewState extends State<_DashboardView> {
         final isAll = state.selectedShift == 3;
         final double mainWidth = 2.0; // Even Thinner (User request)
         final double subWidth = isAll ? 1.5 : 2.0;
-        final double subOpacity = isAll ? 0.5 : 1.0;
+        // final double subOpacity = isAll ? 0.5 : 1.0;
 
         // Trend (Avg)
         if (showAvg) {
@@ -730,31 +817,71 @@ class _DashboardViewState extends State<_DashboardView> {
                                       final val = spot.y.toInt();
                                       String label = '';
                                       int relativeIndex = spot.barIndex;
+
+                                      // Determine which line this spot belongs to
+                                      // Bars order depends on showAvg, showS1, showS2
+                                      bool isTrend = false;
+                                      bool isS1 = false;
+                                      bool isS2 = false;
+
+                                      int currentIndex = 0;
                                       if (showAvg) {
-                                        if (relativeIndex == 0)
+                                        if (relativeIndex == currentIndex)
+                                          isTrend = true;
+                                        currentIndex++;
+                                      }
+                                      if (showS1) {
+                                        if (relativeIndex == currentIndex)
+                                          isS1 = true;
+                                        currentIndex++;
+                                      }
+                                      if (showS2) {
+                                        if (relativeIndex == currentIndex)
+                                          isS2 = true;
+                                        currentIndex++;
+                                      }
+
+                                      // Get Data
+                                      // X is 1-based index (dayIndex)
+                                      final dataIndex = spot.x.toInt() - 1;
+                                      int plan = 0;
+                                      int actual = 0;
+
+                                      if (dataIndex >= 0 &&
+                                          dataIndex < state.shift1Data.length) {
+                                        final d1 = state.shift1Data[dataIndex];
+                                        final d2 = state.shift2Data[dataIndex];
+
+                                        if (isTrend) {
                                           label = 'Trend';
-                                        else if (showS1 && relativeIndex == 1)
+                                          // For Trend, show Total Plan/Actual
+                                          plan =
+                                              (d1['plan'] as int) +
+                                              (d2['plan'] as int);
+                                          actual =
+                                              (d1['actual'] as int) +
+                                              (d2['actual'] as int);
+                                        } else if (isS1) {
                                           label = 'Shift 1';
-                                        else
+                                          plan = d1['plan'] as int;
+                                          actual = d1['actual'] as int;
+                                        } else if (isS2) {
                                           label = 'Shift 2';
-                                        if (showAvg &&
-                                            !showS1 &&
-                                            relativeIndex == 1)
-                                          label = 'Shift 2';
-                                      } else {
-                                        if (showS1 && relativeIndex == 0)
-                                          label = 'Shift 1';
-                                        else
-                                          label = 'Shift 2';
+                                          plan = d2['plan'] as int;
+                                          actual = d2['actual'] as int;
+                                        }
                                       }
 
                                       return LineTooltipItem(
-                                        '$label: $val%',
+                                        '$label: $val%\nPlan: $plan\nActual: $actual',
                                         const TextStyle(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 12,
                                         ),
+                                        children: [
+                                          // Optional: Style Plan/Actual differently if needed
+                                        ],
                                       );
                                     }).toList();
                                   },
@@ -968,7 +1095,7 @@ class _DashboardViewState extends State<_DashboardView> {
               ],
               const SizedBox(height: 16),
               ...state.warehouseData.asMap().entries.map((entry) {
-                final index = entry.key;
+                // final index = entry.key;
                 final item = entry.value;
                 final label = item['label'];
                 final value = (item['value'] as num).toDouble();
@@ -1087,10 +1214,13 @@ class _DashboardViewState extends State<_DashboardView> {
               ],
               const SizedBox(height: 20),
               ...state.nrpData.asMap().entries.map((entry) {
+                final index = entry.key;
                 final item = entry.value;
                 final label = item['label'];
                 final value = (item['value'] as num).toDouble();
                 final displayValue = '${value.toInt()}%';
+                final plan = item['plan_count'] ?? 0;
+                final actual = item['loto_count'] ?? 0;
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
@@ -1132,6 +1262,20 @@ class _DashboardViewState extends State<_DashboardView> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
+                            // Rank Logic
+                            if (index < 3) ...[
+                              Icon(
+                                Icons.emoji_events,
+                                size: 16,
+                                color:
+                                    index == 0
+                                        ? const Color(0xFFFFD700) // Gold
+                                        : index == 1
+                                        ? const Color(0xFFC0C0C0) // Silver
+                                        : const Color(0xFFCD7F32), // Bronze
+                              ),
+                              const SizedBox(width: 4),
+                            ],
                             Expanded(
                               child: Text(
                                 label,
@@ -1178,6 +1322,27 @@ class _DashboardViewState extends State<_DashboardView> {
                                   ),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        // Plan / Actual Footer
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Plan: $plan',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.white.withOpacity(0.6),
+                              ),
+                            ),
+                            Text(
+                              'Actual: $actual',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.white.withOpacity(0.6),
                               ),
                             ),
                           ],

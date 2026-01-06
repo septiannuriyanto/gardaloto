@@ -1,7 +1,7 @@
 import 'package:gardaloto/presentation/pages/auth_gate.dart';
 import 'package:gardaloto/presentation/pages/dashboard_page.dart';
 import 'package:gardaloto/presentation/pages/fit_to_work_page.dart';
-import 'package:gardaloto/presentation/pages/loto_page.dart';
+import 'package:gardaloto/presentation/pages/loto_draft_page.dart';
 import 'package:gardaloto/presentation/pages/loto_review_page.dart';
 import 'package:gardaloto/presentation/pages/loto_sessions_page.dart';
 import 'package:gardaloto/presentation/widget/capture_form_page.dart';
@@ -82,7 +82,7 @@ final router = GoRouter(
             BlocProvider(create: (_) => sl<ManpowerCubit>()),
             BlocProvider(create: (_) => sl<StorageCubit>()),
           ],
-          child: const LotoPage(),
+          child: const LotoDraftPage(),
         );
       },
       routes: [

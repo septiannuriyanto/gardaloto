@@ -18,6 +18,9 @@ class LotoModelAdapter extends TypeAdapter<LotoModel> {
     final hasThumbnail = reader.readBool();
     final thumbnailUrl = hasThumbnail ? reader.readString() : null;
 
+    final hasVersion = reader.readBool();
+    final appVersion = hasVersion ? reader.readString() : null;
+
     return LotoModel(
       codeNumber: codeNumber,
       photoPath: photoPath,
@@ -26,6 +29,7 @@ class LotoModelAdapter extends TypeAdapter<LotoModel> {
       longitude: longitude,
       sessionId: sessionId,
       thumbnailUrl: thumbnailUrl,
+      appVersion: appVersion,
     );
   }
 
@@ -41,6 +45,13 @@ class LotoModelAdapter extends TypeAdapter<LotoModel> {
     if (obj.thumbnailUrl != null) {
       writer.writeBool(true);
       writer.writeString(obj.thumbnailUrl!);
+    } else {
+      writer.writeBool(false);
+    }
+
+    if (obj.appVersion != null) {
+      writer.writeBool(true);
+      writer.writeString(obj.appVersion!);
     } else {
       writer.writeBool(false);
     }

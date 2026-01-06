@@ -8,6 +8,7 @@ class LotoModel {
   final double longitude;
   final String sessionId;
   final String? thumbnailUrl;
+  final String? appVersion;
 
   LotoModel({
     required this.codeNumber,
@@ -17,6 +18,7 @@ class LotoModel {
     required this.longitude,
     required this.sessionId,
     this.thumbnailUrl,
+    this.appVersion,
   });
 
   // ===============================
@@ -31,6 +33,7 @@ class LotoModel {
       longitude: (json['longitude'] as num).toDouble(),
       sessionId: json['session_id'] as String,
       thumbnailUrl: json['thumbnail_url'] as String?,
+      appVersion: json['app_version'] as String?,
     );
   }
 
@@ -46,6 +49,7 @@ class LotoModel {
       'longitude': longitude,
       'session_id': sessionId,
       'thumbnail_url': thumbnailUrl,
+      'app_version': appVersion,
     };
   }
 
@@ -61,6 +65,7 @@ class LotoModel {
       longitude: entity.longitude,
       sessionId: entity.sessionId,
       thumbnailUrl: entity.thumbnailUrl,
+      appVersion: entity.appVersion,
     );
   }
 
@@ -73,6 +78,7 @@ class LotoModel {
       longitude: longitude,
       sessionId: sessionId,
       thumbnailUrl: thumbnailUrl,
+      appVersion: appVersion,
     );
   }
 }

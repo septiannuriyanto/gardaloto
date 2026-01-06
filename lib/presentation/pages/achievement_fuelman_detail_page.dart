@@ -71,10 +71,13 @@ class _AchievementFuelmanDetailPageState
   Widget build(BuildContext context) {
     return BlocProvider(
       create:
-          (context) => FuelmanDetailCubit(
-            lotoRepo: sl<LotoRepository>(),
-            nrp: widget.nrp,
-          )..loadDailyAchievement(),
+          (context) =>
+              FuelmanDetailCubit(
+                  lotoRepo: sl<LotoRepository>(),
+                  nrp: widget.nrp,
+                )
+                ..loadDailyAchievement()
+                ..loadMonthlyRecords(),
       child: BlocListener<FuelmanDetailCubit, FuelmanDetailState>(
         listener: (context, state) {
           if (state.errorMessage != null) {
@@ -117,17 +120,24 @@ class _AchievementFuelmanDetailPageState
               ),
             ),
             child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(),
-                    const SizedBox(height: 24),
-                    _buildChartSection(),
-                    const SizedBox(height: 24),
-                    Expanded(child: _buildReconciliationSection()),
-                  ],
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(),
+                      const SizedBox(height: 24),
+                      _buildChartSection(),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        height: 300,
+                        child: _buildRecordHistorySection(),
+                      ),
+                      const SizedBox(height: 24),
+                      _buildReconciliationSection(),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -721,23 +731,22 @@ class _AchievementFuelmanDetailPageState
               ),
             ),
             const SizedBox(height: 16),
-            Expanded(
-              child:
-                  filteredList.isEmpty
-                      ? Center(
-                        child: Text(
-                          'No matching records found',
-                          style: TextStyle(color: Colors.white54),
-                        ),
-                      )
-                      : ListView.builder(
-                        itemCount: filteredList.length,
-                        itemBuilder: (context, index) {
-                          final item = filteredList[index];
-                          return _buildReconciliationCard(context, item);
-                        },
-                      ),
-            ),
+            filteredList.isEmpty
+                ? const Center(
+                  child: Text(
+                    'No matching records found',
+                    style: TextStyle(color: Colors.white54),
+                  ),
+                )
+                : ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: filteredList.length,
+                  itemBuilder: (context, index) {
+                    final item = filteredList[index];
+                    return _buildReconciliationCard(context, item);
+                  },
+                ),
           ],
         );
       },
@@ -795,6 +804,185 @@ class _AchievementFuelmanDetailPageState
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRecordHistorySection() {
+    return BlocBuilder<FuelmanDetailCubit, FuelmanDetailState>(
+      builder: (context, state) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Record History (Current Month)',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child:
+                    state.isMonthlyRecordsLoading
+                        ? _buildHistorySkeleton()
+                        : state.monthlyRecords.isEmpty
+                        ? const Center(
+                          child: Text(
+                            'No records found for this month.',
+                            style: TextStyle(color: Colors.white54),
+                          ),
+                        )
+                        : SingleChildScrollView(
+                          scrollDirection: Axis.vertical,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: DataTable(
+                              columns: const [
+                                DataColumn(
+                                  label: Text(
+                                    'No',
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
+                                    'Date',
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
+                                    'Time',
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
+                                    'Shift',
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
+                                    'Unit',
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
+                                    'Session',
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                                ),
+                              ],
+                              rows:
+                                  state.monthlyRecords.asMap().entries.map((
+                                    entry,
+                                  ) {
+                                    final index = entry.key;
+                                    final record = entry.value;
+                                    final timestamp =
+                                        record['timestamp_taken'] != null
+                                            ? DateTime.parse(
+                                              record['timestamp_taken'],
+                                            )
+                                            : null;
+                                    final dateStr =
+                                        timestamp != null
+                                            ? DateFormat(
+                                              'dd MMM',
+                                            ).format(timestamp)
+                                            : '-';
+                                    final timeStr =
+                                        timestamp != null
+                                            ? DateFormat(
+                                              'HH:mm',
+                                            ).format(timestamp)
+                                            : '-';
+
+                                    return DataRow(
+                                      cells: [
+                                        DataCell(
+                                          Text(
+                                            '${index + 1}',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Text(
+                                            dateStr,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Text(
+                                            timeStr,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Text(
+                                            '${record['create_shift'] ?? '-'}',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Text(
+                                            record['code_number'] ?? '-',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Text(
+                                            record['session_id'] ?? '-',
+                                            style: const TextStyle(
+                                              color: Colors.white60,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
+                            ),
+                          ),
+                        ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHistorySkeleton() {
+    return ListView.builder(
+      itemCount: 5,
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          height: 40,
+          color: Colors.white.withValues(alpha: 0.05),
+        );
+      },
     );
   }
 

@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img_lib;
+import 'package:gardaloto/core/constants.dart';
 
 /// Compresses the image at [inputPath] to be under [maxSizeInBytes].
 /// Returns the path to the compressed image (which might be the same as inputPath if overwritten).
@@ -209,9 +210,31 @@ Future<String> addWatermarkToImage({
     final logoY = topPadding;
 
     final textX = logoX - brandPara.maxIntrinsicWidth - (width * 0.015);
-    final textY = logoY + (logoDrawHeight - brandPara.height) / 2;
 
-    canvas.drawParagraph(brandPara, ui.Offset(textX, textY));
+    // Draw App Version (Below Logo & Text)
+    final versionFontSize = smallFontSize * 0.8;
+    final versionPara = buildText(
+      'v$appVersion',
+      versionFontSize,
+      isBold: false,
+      titleColor: Colors.white.withValues(alpha: 0.8),
+      hasShadow: true,
+    );
+    versionPara.layout(ui.ParagraphConstraints(width: width * 0.3));
+
+    // Calculate vertical centering for the text column (Brand + Version) relatively to Logo
+    final textGap = height * 0.002;
+    final totalTextHeight = brandPara.height + textGap + versionPara.height;
+
+    // Center the text block vertically relative to the logo
+    final blockTopY = logoY + (logoDrawHeight - totalTextHeight) / 2;
+
+    final brandY = blockTopY;
+    final versionY = brandY + brandPara.height + textGap;
+    final versionX = logoX - versionPara.maxIntrinsicWidth - (width * 0.015);
+
+    canvas.drawParagraph(brandPara, ui.Offset(textX, brandY));
+    canvas.drawParagraph(versionPara, ui.Offset(versionX, versionY));
 
     paintImage(
       canvas: canvas,

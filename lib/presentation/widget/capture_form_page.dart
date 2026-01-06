@@ -18,6 +18,7 @@ import 'package:go_router/go_router.dart';
 import 'dart:ui';
 import 'package:geolocator/geolocator.dart';
 import 'package:gardaloto/presentation/widget/custom_action_chip.dart'; // Import CustomActionChip
+import 'package:gardaloto/core/constants.dart';
 
 class CaptureFormPage extends StatefulWidget {
   const CaptureFormPage({super.key});
@@ -733,6 +734,7 @@ class _CaptureFormPageState extends State<CaptureFormPage> {
                                           latitude: state.lat,
                                           longitude: state.lng,
                                           sessionId: sessionId,
+                                          appVersion: appVersion,
                                         ),
                                         // Pass extra data needed for background watermarking
                                         nrp: nrp,

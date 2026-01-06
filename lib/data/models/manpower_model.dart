@@ -8,6 +8,7 @@ class ManpowerModel extends HiveObject {
   final int? position;
   final String? email;
   final DateTime? updatedAt;
+  final String? photoUrl;
 
   ManpowerModel({
     required this.nrp,
@@ -16,6 +17,7 @@ class ManpowerModel extends HiveObject {
     this.position,
     this.email,
     this.updatedAt,
+    this.photoUrl,
   });
 
   factory ManpowerModel.fromEntity(ManpowerEntity entity) {
@@ -26,6 +28,7 @@ class ManpowerModel extends HiveObject {
       position: entity.position,
       email: entity.email,
       updatedAt: entity.updatedAt,
+      photoUrl: entity.photoUrl,
     );
   }
 
@@ -37,6 +40,7 @@ class ManpowerModel extends HiveObject {
       position: position,
       email: email,
       updatedAt: updatedAt,
+      photoUrl: photoUrl,
     );
   }
 
@@ -51,6 +55,7 @@ class ManpowerModel extends HiveObject {
           json['updated_at'] != null
               ? DateTime.tryParse(json['updated_at'] as String)
               : null,
+      photoUrl: json['photo_url'] as String?,
     );
   }
 }
@@ -69,6 +74,7 @@ class ManpowerModelAdapter extends TypeAdapter<ManpowerModel> {
       position: reader.read(),
       email: reader.read(),
       updatedAt: reader.read(),
+      photoUrl: reader.read(),
     );
   }
 
@@ -80,5 +86,6 @@ class ManpowerModelAdapter extends TypeAdapter<ManpowerModel> {
     writer.write(obj.position);
     writer.write(obj.email);
     writer.write(obj.updatedAt);
+    writer.write(obj.photoUrl);
   }
 }

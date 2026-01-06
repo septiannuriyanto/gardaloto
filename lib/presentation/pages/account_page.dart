@@ -10,7 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:gardaloto/core/service_locator.dart'; // For accessing dependencies if needed, but Cubit is enough
+// import 'package:gardaloto/core/service_locator.dart'; // For accessing dependencies if needed, but Cubit is enough
 import 'package:gardaloto/core/constants.dart';
 
 import 'package:palette_generator/palette_generator.dart';
@@ -355,18 +355,18 @@ class _AccountPageState extends State<AccountPage> {
                                         decoration: BoxDecoration(
                                           color:
                                               bgPhotoUrl != null &&
-                                                      bgPhotoUrl!.isNotEmpty
+                                                      bgPhotoUrl.isNotEmpty
                                                   ? Colors.black
                                                   : Colors.white.withOpacity(
                                                     0.1,
                                                   ),
                                           image:
                                               bgPhotoUrl != null &&
-                                                      bgPhotoUrl!.isNotEmpty
+                                                      bgPhotoUrl.isNotEmpty
                                                   ? DecorationImage(
                                                     image:
                                                         CachedNetworkImageProvider(
-                                                          bgPhotoUrl!,
+                                                          bgPhotoUrl,
                                                         ),
                                                     fit: BoxFit.cover,
                                                   )
@@ -381,7 +381,7 @@ class _AccountPageState extends State<AccountPage> {
                                         ),
                                         child:
                                             bgPhotoUrl == null ||
-                                                    bgPhotoUrl!.isEmpty
+                                                    bgPhotoUrl.isEmpty
                                                 ? Center(
                                                   child: Column(
                                                     mainAxisSize:
@@ -446,9 +446,9 @@ class _AccountPageState extends State<AccountPage> {
                                               child: ClipOval(
                                                 child:
                                                     photoUrl != null &&
-                                                            photoUrl!.isNotEmpty
+                                                            photoUrl.isNotEmpty
                                                         ? CachedNetworkImage(
-                                                          imageUrl: photoUrl!,
+                                                          imageUrl: photoUrl,
                                                           width:
                                                               avatarRadius * 2,
                                                           height:
@@ -613,29 +613,29 @@ class _AccountPageState extends State<AccountPage> {
     );
   }
 
-  Widget _buildGlassCard({required Widget child}) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1), // White frost
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 20,
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: child,
-        ),
-      ),
-    );
-  }
+  // Widget _buildGlassCard({required Widget child}) {
+  //   return ClipRRect(
+  //     borderRadius: BorderRadius.circular(24),
+  //     child: BackdropFilter(
+  //       filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+  //       child: Container(
+  //         decoration: BoxDecoration(
+  //           color: Colors.white.withOpacity(0.1), // White frost
+  //           borderRadius: BorderRadius.circular(24),
+  //           border: Border.all(color: Colors.white.withOpacity(0.2)),
+  //           boxShadow: [
+  //             BoxShadow(
+  //               color: Colors.black.withOpacity(0.2),
+  //               blurRadius: 20,
+  //               spreadRadius: 5,
+  //             ),
+  //           ],
+  //         ),
+  //         child: child,
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildDetailRow(IconData icon, String label, String value) {
     return Padding(

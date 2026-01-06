@@ -6,6 +6,7 @@ class LotoEntity {
   final double longitude;
   final String sessionId;
   final String? thumbnailUrl;
+  final String? appVersion;
 
   LotoEntity({
     required this.codeNumber,
@@ -15,6 +16,7 @@ class LotoEntity {
     required this.longitude,
     required this.sessionId,
     this.thumbnailUrl,
+    this.appVersion,
   });
 
   Map<String, dynamic> toJson() {
@@ -38,6 +40,7 @@ class LotoEntity {
       longitude: json['longitude'] as double,
       sessionId: json['session_id'] as String,
       thumbnailUrl: json['thumbnail_url'] as String?,
+      appVersion: json['app_version'] as String?,
     );
   }
 }

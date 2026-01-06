@@ -28,6 +28,9 @@ import 'package:gardaloto/presentation/cubit/unit_cubit.dart';
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gardaloto/data/datasources/manpower_datasource.dart';
+import 'package:gardaloto/domain/repositories/version_repository.dart';
+import 'package:gardaloto/data/repositories/version_repository_impl.dart';
+import 'package:gardaloto/presentation/cubit/version_cubit.dart';
 
 final sl = GetIt.instance;
 
@@ -80,7 +83,7 @@ Future<void> initServiceLocator() async {
 
   // MANPOWER
   sl.registerLazySingleton(() => ManpowerDatasource(sl<SupabaseClient>()));
-  
+
   final _manpowerRepo = ManpowerRepositoryImpl(sl<ManpowerDatasource>());
   await _manpowerRepo.init();
   sl.registerLazySingleton<ManpowerRepository>(() => _manpowerRepo);
@@ -111,4 +114,10 @@ Future<void> initServiceLocator() async {
       registerUserUseCase: sl<RegisterUser>(),
     ),
   );
+
+  // VERSION
+  sl.registerLazySingleton<VersionRepository>(
+    () => VersionRepositoryImpl(sl<SupabaseClient>()),
+  );
+  sl.registerFactory(() => VersionCubit(sl<VersionRepository>()));
 }

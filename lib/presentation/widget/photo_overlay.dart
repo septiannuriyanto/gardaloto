@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:gardaloto/core/constants.dart';
 
 class PhotoOverlay extends StatelessWidget {
   final String photoPath;
@@ -131,30 +132,55 @@ class PhotoOverlay extends StatelessWidget {
         Positioned(
           top: 16,
           right: 16,
-          child: Row(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                "Garda LOTO",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w200,
-                  fontSize: 12,
-                  shadows: [
-                    Shadow(
-                      offset: const Offset(1, 1),
-                      blurRadius: 3,
-                      color: Colors.black.withOpacity(0.5),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Image.asset(
-                'assets/logo.png',
-                height: 24,
-                width: 24,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        "Garda LOTO",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w200,
+                          fontSize: 12,
+                          shadows: [
+                            Shadow(
+                              offset: const Offset(1, 1),
+                              blurRadius: 3,
+                              color: Colors.black.withOpacity(0.5),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      // App Version
+                      Text(
+                        'v$appVersion',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w400,
+                          shadows: [
+                            Shadow(
+                              offset: const Offset(1, 1),
+                              blurRadius: 2,
+                              color: Colors.black.withOpacity(0.5),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                  Image.asset('assets/logo.png', height: 24, width: 24),
+                ],
               ),
             ],
           ),

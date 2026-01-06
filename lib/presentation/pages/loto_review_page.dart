@@ -321,7 +321,7 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
               builder: (context, manpowerState) {
                 // Lookup names
                 String fuelmanDisplay = session!.fuelman;
-                String operatorDisplay = session!.operatorName;
+                String operatorDisplay = session.operatorName;
 
                 if (manpowerState is ManpowerSynced) {
                   final fuelmanEntity =
@@ -442,13 +442,13 @@ class _LotoReviewViewState extends State<_LotoReviewView> {
                                           final text =
                                               '*LOTO Session Report*\n\n'
                                               'Date: ${DateFormat('dd MMM yyyy').format(session!.dateTime.toLocal())}\n'
-                                              'Shift: ${session!.shift}\n'
-                                              'Warehouse: ${session!.warehouseCode}\n'
+                                              'Shift: ${session.shift}\n'
+                                              'Warehouse: ${session.warehouseCode}\n'
                                               'Fuelman: $fuelmanDisplay\n'
                                               'Operator: $operatorDisplay\n'
-                                              'Code: ${session!.nomor}\n'
+                                              'Code: ${session.nomor}\n'
                                               'Evidence Count: $rCount files\n\n'
-                                              'View details: $sessionUrl${session!.nomor}';
+                                              'View details: $sessionUrl${session.nomor}';
                                           Share.share(text);
                                         },
                                       ),

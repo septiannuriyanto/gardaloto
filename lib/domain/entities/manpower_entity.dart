@@ -8,6 +8,8 @@ class ManpowerEntity extends Equatable {
   final String? email;
   final DateTime? updatedAt;
 
+  final String? photoUrl;
+
   const ManpowerEntity({
     required this.nrp,
     this.nama,
@@ -15,8 +17,17 @@ class ManpowerEntity extends Equatable {
     this.position,
     this.email,
     this.updatedAt,
+    this.photoUrl,
   });
 
   @override
-  List<Object?> get props => [nrp, nama, sidCode, position, email, updatedAt];
+  List<Object?> get props => [
+    nrp,
+    nama,
+    sidCode,
+    position,
+    email,
+    updatedAt,
+    photoUrl,
+  ];
 }

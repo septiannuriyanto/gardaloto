@@ -18,6 +18,10 @@ class FuelmanDetailState extends Equatable {
   // Filter for Reconciliation List (null = All)
   final String? selectedFilterStatus;
 
+  // Monthly Record History
+  final List<Map<String, dynamic>> monthlyRecords;
+  final bool isMonthlyRecordsLoading;
+
   const FuelmanDetailState({
     this.isLoading = false,
     this.isReconciliationLoading = false,
@@ -27,6 +31,8 @@ class FuelmanDetailState extends Equatable {
     this.selectedShift,
     this.reconciliationData = const [],
     this.selectedFilterStatus,
+    this.monthlyRecords = const [],
+    this.isMonthlyRecordsLoading = false,
   });
 
   FuelmanDetailState copyWith({
@@ -39,6 +45,8 @@ class FuelmanDetailState extends Equatable {
     List<Map<String, dynamic>>? reconciliationData,
     String? selectedFilterStatus,
     bool forceClearFilter = false,
+    List<Map<String, dynamic>>? monthlyRecords,
+    bool? isMonthlyRecordsLoading,
   }) {
     return FuelmanDetailState(
       isLoading: isLoading ?? this.isLoading,
@@ -53,6 +61,9 @@ class FuelmanDetailState extends Equatable {
           forceClearFilter
               ? null
               : (selectedFilterStatus ?? this.selectedFilterStatus),
+      monthlyRecords: monthlyRecords ?? this.monthlyRecords,
+      isMonthlyRecordsLoading:
+          isMonthlyRecordsLoading ?? this.isMonthlyRecordsLoading,
     );
   }
 
@@ -66,5 +77,7 @@ class FuelmanDetailState extends Equatable {
     selectedShift,
     reconciliationData,
     selectedFilterStatus,
+    monthlyRecords,
+    isMonthlyRecordsLoading,
   ];
 }

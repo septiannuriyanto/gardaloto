@@ -90,4 +90,7 @@ abstract class LotoRepository {
 
   /// Updates the unit code of an existing LOTO record (RPC update_loto_record_unit).
   Future<void> updateLotoRecordUnit(String recordId, String newUnitCode);
+
+  /// Fetches monthly record history for a fuelman (RPC get_fuelman_monthly_records).
+  Future<List<Map<String, dynamic>>> getFuelmanMonthlyRecords(String nrp);
 }

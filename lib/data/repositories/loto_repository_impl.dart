@@ -28,15 +28,7 @@ class LotoRepositoryImpl implements LotoRepository {
   Future<void> init() async {
     await Hive.initFlutter();
     // Register adapter only once
-    // Register adapter only once
     if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(LotoModelAdapter());
-    try {
-      _box = await Hive.openBox<LotoModel>(_boxName);
-    } catch (e) {
-      await Hive.deleteBoxFromDisk(_boxName);
-      _box = await Hive.openBox<LotoModel>(_boxName);
-    }
-
     try {
       _box = await Hive.openBox<LotoModel>(_boxName);
     } catch (e) {
@@ -226,13 +218,43 @@ class LotoRepositoryImpl implements LotoRepository {
           print('⏩ DB Check: Skipped uploaded file for ${record.codeNumber}');
         } else {
           // 1. Upload Original Image
-          imageUrl = await _uploader.upload(
-            file: File(record.photoPath),
-            path: filePath,
-            session: session,
-            record: record,
-            isThumbnail: false,
-          );
+          // 1. Upload Original Image (Compressed)
+          File fileToUpload = File(record.photoPath);
+          File? compressedFile; // To keep track for cleanup
+
+          try {
+            // Compress to ensure reasonable size (e.g. < 500KB)
+            final XFile? compressedXFile =
+                await FlutterImageCompress.compressAndGetFile(
+                  record.photoPath,
+                  record.photoPath.replaceAll('.jpg', '_opt.jpg'),
+                  minWidth: 1024,
+                  minHeight: 1024,
+                  quality: 80,
+                );
+
+            if (compressedXFile != null) {
+              compressedFile = File(compressedXFile.path);
+              fileToUpload = compressedFile;
+            }
+          } catch (e) {
+            print('⚠️ Compression failed, uploading original: $e');
+          }
+
+          try {
+            imageUrl = await _uploader.upload(
+              file: fileToUpload,
+              path: filePath,
+              session: session,
+              record: record,
+              isThumbnail: false,
+            );
+          } finally {
+            // Cleanup compressed file if created
+            if (compressedFile != null && await compressedFile.exists()) {
+              await compressedFile.delete();
+            }
+          }
 
           // 2. Generate and Upload Thumbnail
           // Generate a thumbnail with width ~300px
@@ -472,7 +494,7 @@ class LotoRepositoryImpl implements LotoRepository {
                   ...e.value.toJson(),
                   'session_id':
                       session.nomor, // Add session_id from loto_sessions
-                  'photo_path': imageUrls[e.key],
+                  'thumbnail_url': imageUrls[e.key],
                 },
               )
               .toList();
@@ -621,6 +643,22 @@ class LotoRepositoryImpl implements LotoRepository {
     } catch (e) {
       print('Error updating loto record unit: $e');
       rethrow;
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getFuelmanMonthlyRecords(
+    String nrp,
+  ) async {
+    try {
+      final data = await _supabaseClient.rpc(
+        'get_fuelman_monthly_records',
+        params: {'nrp_input': nrp},
+      );
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      print('Error fetching fuelman monthly records: $e');
+      return [];
     }
   }
 }

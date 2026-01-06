@@ -130,6 +130,13 @@ class DashboardCubit extends Cubit<DashboardState> {
     List<Map<String, dynamic>> nrpRawData,
     int? lastVerificationCode,
   ) {
+    int safeInt(dynamic val) {
+      if (val == null) return 0;
+      if (val is int) return val;
+      if (val is String) return int.tryParse(val) ?? 0;
+      return 0;
+    }
+
     // 1. Process LOTO Data (buckets S1/S2)
     // We always have 30 days of data here from lotoRawData
     // We filter visually based on daysToShow
@@ -138,11 +145,28 @@ class DashboardCubit extends Cubit<DashboardState> {
 
     int daysToShow = state.selectedPeriod == DashboardPeriod.week ? 7 : 30;
 
+    // Determine End Date based on lastVerificationCode
+    DateTime endDate = TimeHelper.now();
+    if (lastVerificationCode != null) {
+      final s = lastVerificationCode.toString();
+      if (s.length >= 6) {
+        try {
+          final yy = int.parse(s.substring(0, 2));
+          final mm = int.parse(s.substring(2, 4));
+          final dd = int.parse(s.substring(4, 6));
+          final year = 2000 + yy;
+          endDate = DateTime(year, mm, dd);
+        } catch (_) {
+          // Fallback to today if parse fails
+        }
+      }
+    }
+
     // ... Date buckets ...
     List<DateTime> dateRange = [];
-    // Start from daysToShow - 1, down to 0 (Include Today)
+    // Start from daysToShow - 1, down to 0 (Include endDate)
     for (int i = daysToShow - 1; i >= 0; i--) {
-      final d = DateTime.now().subtract(Duration(days: i));
+      final d = endDate.subtract(Duration(days: i));
       dateRange.add(DateTime(d.year, d.month, d.day));
     }
 
@@ -157,6 +181,9 @@ class DashboardCubit extends Cubit<DashboardState> {
       );
       double valS1 =
           entryS1.isNotEmpty ? (entryS1['percentage'] as num).toDouble() : 0.0;
+      int planS1 =
+          entryS1.isNotEmpty ? safeInt(entryS1['total_verification']) : 0;
+      int actualS1 = entryS1.isNotEmpty ? safeInt(entryS1['total_loto']) : 0;
 
       final entryS2 = lotoRawData.firstWhere(
         (e) => e['date'] == dateStr && e['shift'] == 2,
@@ -164,9 +191,24 @@ class DashboardCubit extends Cubit<DashboardState> {
       );
       double valS2 =
           entryS2.isNotEmpty ? (entryS2['percentage'] as num).toDouble() : 0.0;
+      int planS2 =
+          entryS2.isNotEmpty ? safeInt(entryS2['total_verification']) : 0;
+      int actualS2 = entryS2.isNotEmpty ? safeInt(entryS2['total_loto']) : 0;
 
-      s1.add({'day': dayIndex, 'count': valS1, 'date': date});
-      s2.add({'day': dayIndex, 'count': valS2, 'date': date});
+      s1.add({
+        'day': dayIndex,
+        'count': valS1,
+        'date': date,
+        'plan': planS1,
+        'actual': actualS1,
+      });
+      s2.add({
+        'day': dayIndex,
+        'count': valS2,
+        'date': date,
+        'plan': planS2,
+        'actual': actualS2,
+      });
       dayIndex++;
     }
 
@@ -194,10 +236,9 @@ class DashboardCubit extends Cubit<DashboardState> {
                 'label': e['name'] ?? e['nrp'] ?? 'Unknown',
                 'nrp': e['nrp'], // Added for navigation
                 'value': (e['percentage'] as num).toDouble(),
-                'display_count':
-                    e.containsKey('loto_count')
-                        ? '${e['loto_count']} Records'
-                        : null,
+                'loto_count': e['loto_count'] ?? 0, // Actual
+                'plan_count': e['verification_count'] ?? 0, // Plan
+                'display_count': '${e['loto_count'] ?? 0} Record',
               },
             )
             .toList();

@@ -3,6 +3,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:gardaloto/core/time_helper.dart';
 
+import 'package:gal/gal.dart';
+
 /// Saves an image from a temporary source path to the application's persistent documents directory.
 /// Returns the new persistent path.
 Future<String> saveImageToPersistentStorage(String sourcePath) async {
@@ -37,4 +39,29 @@ Future<String> saveImageToPersistentStorage(String sourcePath) async {
     print('Error saving image to persistent storage: $e');
     rethrow;
   }
+}
+
+/// Saves a list of images to the device's public gallery.
+/// Returns the number of images successfully saved.
+Future<int> saveSessionImagesToGallery(List<String> filePaths) async {
+  if (filePaths.isEmpty) return 0;
+
+  // Check permissions first if needed, but Gal handles simple requests.
+  // We'll iterate and save each.
+  // Note: Gal.putImage saves one by one.
+
+  if (!await Gal.hasAccess()) {
+    await Gal.requestAccess();
+  }
+
+  int successCount = 0;
+  for (final path in filePaths) {
+    try {
+      await Gal.putImage(path);
+      successCount++;
+    } catch (e) {
+      print('Failed to save image to gallery: $path, error: $e');
+    }
+  }
+  return successCount;
 }
